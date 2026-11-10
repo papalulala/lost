@@ -49,6 +49,34 @@ try{
  controls.target.set(0,.42,0);controls.enablePan=false;controls.enableDamping=false;
  controls.rotateSpeed=.66;controls.minDistance=5;controls.maxDistance=29;
  controls.minPolarAngle=.58;controls.maxPolarAngle=1.52;controls.update();
+ const waterTouches=new Map(),turnAxis=new T.Vector3(0,1,0),orbitOffset=new T.Vector3();
+ let waterAngle=null,waterPinched=false;
+ function touchAngle(){
+  if(waterTouches.size!==2)return null;
+  const [a,b]=waterTouches.values();
+  return Math.atan2(b.y-a.y,b.x-a.x);
+ }
+ renderer.domElement.addEventListener('pointerdown',e=>{
+  if(e.pointerType!=='touch'||waterTouches.size>=2)return;
+  if(!waterTouches.size)waterPinched=false;
+  waterTouches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  waterAngle=touchAngle();
+  if(waterAngle!==null)waterPinched=true;
+ });
+ renderer.domElement.addEventListener('pointermove',e=>{
+  const p=waterTouches.get(e.pointerId);if(!p)return;
+  p.x=e.clientX;p.y=e.clientY;
+  const angle=touchAngle();
+  if(angle!==null&&waterAngle!==null){
+   const delta=Math.atan2(Math.sin(angle-waterAngle),Math.cos(angle-waterAngle));
+   orbitOffset.copy(camera.position).sub(controls.target).applyAxisAngle(turnAxis,-delta*.92);
+   camera.position.copy(controls.target).add(orbitOffset);controls.update();
+  }
+  waterAngle=angle;
+ });
+ function endWaterTouch(e){waterTouches.delete(e.pointerId);waterAngle=touchAngle();}
+ for(const name of ['pointerup','pointercancel','lostpointercapture'])renderer.domElement.addEventListener(name,endWaterTouch);
+ window.addEventListener('blur',()=>{waterTouches.clear();waterAngle=null;});
  const sunDirection=new T.Vector3(-.48,.20,-.85).normalize();
  const time={value:0};
  const horizonTint={value:new T.Color()},zenithTint={value:new T.Color()};
@@ -294,7 +322,7 @@ try{
  renderer.domElement.addEventListener('pointerup',e=>{
   if(!e.isPrimary||!start)return;
   const moved=Math.hypot(e.clientX-start[0],e.clientY-start[1]);start=null;
-  if(moved>6)return;
+  if(moved>6||(e.pointerType==='touch'&&waterPinched))return;
   const r=renderer.domElement.getBoundingClientRect();
   pointer.set((e.clientX-r.left)/r.width*2-1,1-(e.clientY-r.top)/r.height*2);
   ray.setFromCamera(pointer,camera);
@@ -310,7 +338,7 @@ try{
  });
  function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}
  addEventListener('resize',resize);
- hint.textContent='拖曳看水光 · 輕點水面激起漣漪 · 點收音機轉台';
+ hint.textContent='拖曳或雙指旋轉 · 點水面激起漣漪 · 點收音機轉台';
  let startTime; renderer.setAnimationLoop(ms=>{startTime??=ms;time.value=(ms-startTime)*.001;updateDaylight(time.value);renderer.render(scene,camera);});
 }catch(error){hint.textContent='水面載入失敗，請確認連線後重新整理。';console.error(error);}
 </script></html>

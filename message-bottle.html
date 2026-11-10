@@ -5,7 +5,7 @@
 </style>
 <main><section class="panel"><small>失物宇宙</small><h1>失物留言</h1><p>你最記得哪一件失物？留下一個名字，再寫一段它的小故事。留言中的失物有機會被製作。</p>
 <form id="note-form"><label for="item">失物名稱</label><input id="item" required maxlength="30" autocomplete="off" placeholder="例如：草叢裡的珠寶皮箱"><label for="memory">失物的小故事</label><textarea id="memory" required maxlength="500" placeholder="你在哪裡遇見它？後來又去了哪裡？"></textarea><div class="buttons"><button type="submit">送出留言</button><button type="button" id="journal-open">翻開留言簿</button></div></form><p id="status" role="status"></p></section>
-<div id="stage" aria-label="可以輕輕轉動的玻璃瓶"><div id="count">瓶中有 0 則回憶 · 拖曳可輕轉瓶身</div></div></main>
+<div id="stage" aria-label="可以輕輕轉動的玻璃瓶"><div id="count">瓶中有 0 則回憶 · 拖曳或雙指旋轉可輕轉瓶身</div></div></main>
 <nav aria-label="場景切換"><a href="bamboo-night.html" aria-label="上一個場景，竹影深處">◀</a><a href="abandoned-playground.html" aria-label="下一個場景，廢棄遊樂場">▶</a></nav>
 <dialog id="journal"><h2>失物留言簿</h2><p>這些留言保存在目前的瀏覽器。</p><div id="notes"></div><form method="dialog"><button>闔上留言簿</button></form></dialog>
 <script type="module">
@@ -26,7 +26,7 @@ try{
   }
  }
 }catch{}
-const count=()=>get('count').textContent='瓶中有 '+entries.length+' 則回憶 · 拖曳可輕轉瓶身';
+const count=()=>get('count').textContent='瓶中有 '+entries.length+' 則回憶 · 拖曳或雙指旋轉可輕轉瓶身';
 const journal=get('journal');
 function openJournal(){
  const list=get('notes');list.replaceChildren();
@@ -128,21 +128,42 @@ function addGlyph(ch,fly,index){
 for(const e of entries)for(const ch of e.glyphs)addGlyph(ch,false,0);
 addVisual=glyphs=>glyphs.forEach((ch,i)=>addGlyph(ch,true,i));
 const mouth=new T.Vector3(0,4.52,0),origin=new T.Vector3(-2.43,4.1,1.1),mid=new T.Vector3(-1.13,5.17,.34);
-let drag=null,yaw=0,pitch=0,shownYaw=0,shownPitch=0,swayX=0,swayZ=0;
+let yaw=0,pitch=0,shownYaw=0,shownPitch=0,swayX=0,swayZ=0;
 const canvas=renderer.domElement;
+const contacts=new Map();
+let gesture=null;
 canvas.style.cursor='grab';
+function resetGesture(){
+ const [a,b]=contacts.values();
+ gesture=!a?null:b?{twist:true,angle:Math.atan2(b.y-a.y,b.x-a.x),yaw,pitch}:{twist:false,x:a.x,y:a.y,yaw,pitch};
+}
 canvas.addEventListener('pointerdown',e=>{
- if(!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;
- drag={id:e.pointerId,x:e.clientX,y:e.clientY,yaw,pitch};
- canvas.setPointerCapture(e.pointerId);canvas.style.cursor='grabbing';
+ if((e.pointerType==='mouse'&&e.button!==0)||contacts.size>=2)return;
+ contacts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ canvas.setPointerCapture(e.pointerId);
+ canvas.style.cursor='grabbing';resetGesture();
 });
 canvas.addEventListener('pointermove',e=>{
- if(!drag||drag.id!==e.pointerId)return;
- yaw=T.MathUtils.clamp(drag.yaw+(e.clientX-drag.x)*.0048,-.47,.47);
- pitch=T.MathUtils.clamp(drag.pitch+(e.clientY-drag.y)*.0032,-.095,.095);
+ const p=contacts.get(e.pointerId);
+ if(!p||!gesture)return;
+ p.x=e.clientX;p.y=e.clientY;
+ if(gesture.twist){
+  const [a,b]=contacts.values();
+  const change=Math.atan2(b.y-a.y,b.x-a.x)-gesture.angle;
+  const turn=Math.atan2(Math.sin(change),Math.cos(change));
+  yaw=T.MathUtils.clamp(gesture.yaw+turn*.84,-.47,.47);
+ }else{
+  yaw=T.MathUtils.clamp(gesture.yaw+(p.x-gesture.x)*.0048,-.47,.47);
+  pitch=T.MathUtils.clamp(gesture.pitch+(p.y-gesture.y)*.0032,-.095,.095);
+ }
 });
-function release(e){if(drag?.id===e.pointerId){drag=null;canvas.style.cursor='grab';}}
+function release(e){
+ if(!contacts.delete(e.pointerId))return;
+ if(!contacts.size)canvas.style.cursor='grab';
+ resetGesture();
+}
 for(const type of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(type,release);
+window.addEventListener('blur',()=>{contacts.clear();resetGesture();canvas.style.cursor='grab';});
 function resize(){
  const w=stage.clientWidth,h=stage.clientHeight;camera.aspect=w/Math.max(1,h);
  camera.fov=camera.aspect<.8?43:35;camera.updateProjectionMatrix();renderer.setSize(w,h);

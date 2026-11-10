@@ -48,10 +48,10 @@ function createDragControls(camera, canvas, target, minDistance, maxDistance){
  const controls={enabled:true,wasGesture:false};
  const fingers=new Map();
  const startOffset=new T.Vector3(),startOrientation=new T.Quaternion();
- const horizontal=new T.Quaternion(),vertical=new T.Quaternion(),rotation=new T.Quaternion();
- const right=new T.Vector3(1,0,0),up=new T.Vector3(0,1,0);
+ const horizontal=new T.Quaternion(),vertical=new T.Quaternion(),rotation=new T.Quaternion(),twist=new T.Quaternion();
+ const right=new T.Vector3(1,0,0),up=new T.Vector3(0,1,0),forwardAxis=new T.Vector3(0,0,1);
  const offset=new T.Vector3();
- let startX=0,startY=0,startGap=0,startDistance=0;
+ let startX=0,startY=0,startGap=0,startDistance=0,startAngle=0;
  camera.lookAt(target);
  function gap(){
   const [a,b]=fingers.values();
@@ -64,7 +64,7 @@ function createDragControls(camera, canvas, target, minDistance, maxDistance){
   startOffset.copy(camera.position).sub(target);
   startOrientation.copy(camera.quaternion);
   startDistance=startOffset.length();
-  startGap=fingers.size===2?gap():0;
+  startGap=fingers.size===2?gap():0; if(startGap){const [a,b]=fingers.values();startAngle=Math.atan2(b.y-a.y,b.x-a.x);}
  }
  function zoom(distance){
   offset.copy(camera.position).sub(target).setLength(T.MathUtils.clamp(distance,minDistance,maxDistance));
@@ -82,7 +82,17 @@ function createDragControls(camera, canvas, target, minDistance, maxDistance){
   const point=fingers.get(event.pointerId);
   if(!point||!controls.enabled)return;
   point.x=event.clientX;point.y=event.clientY;
-  if(fingers.size===2){if(startGap>0)zoom(startDistance*startGap/Math.max(8,gap()));return;}
+  if(fingers.size===2){
+   if(startGap>0){
+    const [a,b]=fingers.values();
+    const change=Math.atan2(b.y-a.y,b.x-a.x)-startAngle;
+    const angle=Math.atan2(Math.sin(change),Math.cos(change));
+    twist.setFromAxisAngle(forwardAxis,angle);
+    camera.quaternion.copy(startOrientation).multiply(twist);
+    zoom(startDistance*startGap/Math.max(8,gap()));
+   }
+   return;
+  }
   const dx=point.x-startX,dy=point.y-startY;
   if(!controls.wasGesture&&Math.hypot(dx,dy)<6)return;
   controls.wasGesture=true;
