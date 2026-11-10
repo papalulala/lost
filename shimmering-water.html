@@ -30,6 +30,13 @@ nav a::after{content:"";border-block:8px solid transparent;border-left:12px soli
   <div id="radio-status" role="status"></div>
  </div>
 </aside>
+<style id="mobile-scene-navigation">
+@media (pointer:coarse), (max-width:600px){
+ nav[aria-label="場景切換"] a{top:auto;bottom:calc(53px + env(safe-area-inset-bottom));transform:none;width:48px;height:48px;z-index:5;touch-action:manipulation}
+ nav[aria-label="場景切換"] a:first-child{left:max(8px,env(safe-area-inset-left))}
+ nav[aria-label="場景切換"] a:last-child{right:max(8px,env(safe-area-inset-right))}
+}
+</style>
 <nav aria-label="場景切換"><a href="blackout-stairwell.html" aria-label="上一個場景，停在七樓的電梯" title="停在七樓的電梯"></a><a href="stationery-tidepool.html" aria-label="下一個場景，放學後的舊文具店" title="放學後的舊文具店"></a></nav>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.179.1/build/three.module.js"}}</script>
 <script type="module">
