@@ -29,6 +29,7 @@ const get=id=>document.getElementById(id);
 const endpoint=document.querySelector('meta[name=messages-endpoint]').content.trim();
 const shared=Boolean(endpoint)&&location.origin==='https://papalulala.github.io';
 const storeKey='lost-universe-message-bottle-v1';
+const publicMessageLimit=80;
 let entries=[];
 if(!shared)try{
  const saved=JSON.parse(localStorage.getItem(storeKey)||'[]');
@@ -125,7 +126,7 @@ form.addEventListener('submit',async event=>{
   const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(pending)});
   if(!response.ok)throw Error(response.status);
   const {message}=await response.json();
-  if(!entries.some(entry=>entry.id===message.id))applyEntries([...entries,{...message,glyphs}].slice(-40));
+  if(!entries.some(entry=>entry.id===message.id))applyEntries([...entries,{...message,glyphs}].slice(-publicMessageLimit));
   pending=null;
   form.reset();
   get('status').textContent='留言已公開，文字已收進瓶裡。';
@@ -138,7 +139,7 @@ form.addEventListener('submit',async event=>{
 });
 count();
 if(shared){
- journal.querySelector('h2 + p').textContent='這裡收錄最近四十則公開留言。';
+ journal.querySelector('h2 + p').textContent='這裡收錄最近 '+publicMessageLimit+' 則公開留言。';
  const notice=document.createElement('p');
  notice.textContent='送出後，所有訪客都能看到這則留言。';
  form.prepend(notice);
