@@ -1,0 +1,178 @@
+<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>失物宇宙｜失物留言</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 73% 49%,#fff2c7 0%,#f7d69a 3%,#de945caa 9%,transparent 29%),radial-gradient(ellipse at 71% 50%,#f5d7a1 0%,#be916f66 36%,transparent 63%),linear-gradient(180deg,#9fa7a5 0%,#dbd3bf 28%,#e1c3a0 45%,#75604b 66%,#332d29 84%,#201f1c 100%);color:#f8eed9;font:16px Georgia,"Noto Serif TC",serif;min-height:100dvh}canvas{position:absolute;inset:0;touch-action:none;display:block}main{min-height:100dvh;display:grid;grid-template-columns:minmax(260px,350px) minmax(0,1fr);align-items:center;gap:18px;padding:32px clamp(38px,6vw,90px)}.panel{position:relative;z-index:1;background:#29241eea;border:1px solid #9277598a;border-radius:12px;padding:clamp(16px,2.3vw,26px);box-shadow:0 12px 38px #24171132}small{letter-spacing:.18em;color:#eac897}h1{font:500 clamp(30px,5vw,49px) Georgia,"Noto Serif TC",serif;margin:.18em 0 .38em}p{line-height:1.55}label{display:block;margin:13px 0 5px}input,textarea{width:100%;background:#382e28;border:1px solid #8e735c;border-radius:6px;color:inherit;font:inherit;padding:9px 11px}textarea{min-height:98px;resize:vertical}button{min-height:44px;font:inherit;color:#3f302a;background:#f1d6a7;border:1px solid #aa8758;border-radius:6px;padding:7px 12px;cursor:pointer}.buttons{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}#stage{position:relative;min-height:550px;width:100%}#count{position:absolute;bottom:0;left:0;right:0;text-align:center;pointer-events:none;color:#f1d7b0;font-size:14px}#status{min-height:1.5em;font-size:14px;color:#f4cf92}dialog{width:min(565px,91vw);max-height:80dvh;overflow:auto;color:#46392c;background:#fbefd4;border:1px solid #b59262;border-radius:9px;padding:22px}dialog::backdrop{background:#101623a6}dialog h2{font:500 30px Georgia,"Noto Serif TC",serif;margin:0 0 12px}article{border-top:1px solid #c2a983;padding:13px 0}article h3{margin:0}article p{white-space:pre-wrap;overflow-wrap:anywhere;margin:.35em 0}article time{font-size:12px;color:#77614b}nav a{position:fixed;top:50%;z-index:3;transform:translateY(-50%);width:38px;height:44px;display:grid;place-items:center;border:1px solid #aa8758;border-radius:6px;background:#f1d6a7;color:#503d2c;text-decoration:none}nav a:first-child{left:4px}nav a:last-child{right:4px}
+@media(max-width:720px){main{grid-template-columns:1fr;padding:18px 46px 28px;gap:0}.panel{grid-row:2}#stage{min-height:310px;grid-row:1}h1{font-size:32px}#count{bottom:3px}nav a{width:36px}}
+</style>
+<main><section class="panel"><small>失物宇宙</small><h1>失物留言</h1><p>你最記得哪一件失物？留下一個名字，再寫一段它的小故事。留言中的失物有機會被製作。</p>
+<form id="note-form"><label for="item">失物名稱</label><input id="item" required maxlength="30" autocomplete="off" placeholder="例如：草叢裡的珠寶皮箱"><label for="memory">失物的小故事</label><textarea id="memory" required maxlength="500" placeholder="你在哪裡遇見它？後來又去了哪裡？"></textarea><div class="buttons"><button type="submit">送出留言</button><button type="button" id="journal-open">翻開留言簿</button></div></form><p id="status" role="status"></p></section>
+<div id="stage" aria-label="可以輕輕轉動的玻璃瓶"><div id="count">瓶中有 0 則回憶 · 拖曳可輕轉瓶身</div></div></main>
+<nav aria-label="場景切換"><a href="bamboo-night.html" aria-label="上一個場景，竹影深處">◀</a><a href="abandoned-playground.html" aria-label="下一個場景，廢棄遊樂場">▶</a></nav>
+<dialog id="journal"><h2>失物留言簿</h2><p>這些留言保存在目前的瀏覽器。</p><div id="notes"></div><form method="dialog"><button>闔上留言簿</button></form></dialog>
+<script type="module">
+const get=id=>document.getElementById(id);
+const storeKey='lost-universe-message-bottle-v1';
+let entries=[];
+try{
+ const saved=JSON.parse(localStorage.getItem(storeKey)||'[]');
+ if(Array.isArray(saved)){
+  entries=saved.filter(e=>e&&typeof e.item==='string'&&typeof e.story==='string'&&Array.isArray(e.glyphs));
+  const cleanupKey=storeKey+'-test-cleanup-v1';
+  if(!localStorage.getItem(cleanupKey)){
+   const testText=/^(?:測試|測試留言|測試失物|測試的失物|測試的留言|test|test message|test item|demo message)(?:[\s　]*[0-9]+)?[。.!！]*$/iu;
+   const cleaned=entries.filter(e=>!testText.test(e.item.trim())&&!testText.test(e.story.trim()));
+   if(cleaned.length!==entries.length)localStorage.setItem(storeKey,JSON.stringify(cleaned));
+   entries=cleaned;
+   localStorage.setItem(cleanupKey,'1');
+  }
+ }
+}catch{}
+const count=()=>get('count').textContent='瓶中有 '+entries.length+' 則回憶 · 拖曳可輕轉瓶身';
+const journal=get('journal');
+function openJournal(){
+ const list=get('notes');list.replaceChildren();
+ if(!entries.length){const p=document.createElement('p');p.textContent='留言簿還是空的。';list.append(p);}
+ for(const e of entries.slice().reverse()){
+  const row=document.createElement('article'),title=document.createElement('h3'),story=document.createElement('p'),date=document.createElement('time');
+  title.textContent=e.item;story.textContent=e.story;
+  const when=new Date(e.date);date.textContent=Number.isFinite(+when)?when.toLocaleString('zh-TW'):'';
+  row.append(title,story,date);list.append(row);
+ }
+ if(!journal.open)journal.showModal();
+}
+get('journal-open').addEventListener('click',openJournal);
+let addVisual=()=>{};
+get('note-form').addEventListener('submit',event=>{
+ event.preventDefault();
+ const item=get('item').value.trim(),story=get('memory').value.trim();
+ if(!item||!story){get('status').textContent='請填寫失物名稱和故事。';return;}
+ const candidates=Array.from(story).filter(ch=>/[\p{L}\p{N}]/u.test(ch));
+ const pool=candidates.length?candidates:Array.from(item);
+ const glyphs=Array.from({length:Math.min(5,pool.length)},(_,i)=>pool[Math.floor(i*pool.length/Math.min(5,pool.length))]);
+ const e={item,story,glyphs,date:new Date().toISOString()};
+ entries.push(e);
+ try{localStorage.setItem(storeKey,JSON.stringify(entries));get('status').textContent='回憶已收進瓶裡。';}
+ catch{get('status').textContent='回憶已加入，但此瀏覽器目前無法保存。';}
+ count();addVisual(e.glyphs);event.currentTarget.reset();
+});
+count();
+try{
+const T=await import('https://cdn.jsdelivr.net/npm/three@0.179.1/build/three.module.js');
+const stage=get('stage'),scene=new T.Scene();
+const camera=new T.PerspectiveCamera(35,1,.1,70);camera.position.set(7.5,5.1,11.5);camera.lookAt(.1,2.25,0);
+const renderer=new T.WebGLRenderer({alpha:true,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));renderer.toneMapping=T.ACESFilmicToneMapping;stage.prepend(renderer.domElement);
+const sky=new T.HemisphereLight(0xe7ddcc,0x615044,1.25);scene.add(sky);
+const key=new T.DirectionalLight(0xffc27c,2.55);key.position.set(4,2,-6);scene.add(key);
+const cool=new T.DirectionalLight(0xc7cbc7,.95);cool.position.set(-4,5,-4);scene.add(cool);
+const vessel=new T.Group();scene.add(vessel);
+const glass=new T.ShaderMaterial({transparent:true,depthWrite:false,side:T.DoubleSide,
+ vertexShader:`
+ varying vec3 viewNormal,viewPosition,localPosition;
+ void main(){
+  localPosition=position;
+  vec4 point=modelViewMatrix*vec4(position,1.);
+  viewPosition=-point.xyz;viewNormal=normalMatrix*normal;
+  gl_Position=projectionMatrix*point;
+ }`,
+ fragmentShader:`
+ varying vec3 viewNormal,viewPosition,localPosition;
+ void main(){
+  vec3 n=normalize(viewNormal),v=normalize(viewPosition);
+  float facing=abs(dot(n,v));
+  float rim=pow(1.-facing,2.8);
+  float stripe=pow(max(0.,dot(reflect(-v,n),normalize(vec3(-.65,.19,.73)))),18.);
+  float narrow=pow(max(0.,dot(reflect(-v,n),normalize(vec3(.78,.31,.55)))),42.);
+  float foot=1.-smoothstep(.12,.60,localPosition.y);
+  vec3 color=mix(vec3(.45,.49,.47),vec3(.96,.75,.46),max(rim*.72,stripe));
+  gl_FragColor=vec4(color,.065+rim*.42+stripe*.44+narrow*.26+foot*.13);
+  #include <colorspace_fragment>
+ }`
+});
+const profile=[[0,.12],[.83,.12],[1.08,.19],[1.19,.39],[1.23,.76],[1.23,2.69],[1.18,2.99],[1.04,3.22],[.80,3.48],[.48,3.68],[.41,3.84],[.41,4.40]].map(p=>new T.Vector2(...p));
+const bottle=new T.Mesh(new T.LatheGeometry(profile,64),glass);bottle.renderOrder=4;vessel.add(bottle);
+const edge=new T.MeshPhysicalMaterial({color:0xe4bc83,roughness:.21,metalness:.26,transparent:true,opacity:.75,depthWrite:false});
+for(const [y,r,w] of [[.23,1.04,.042],[.39,1.16,.025],[4.39,.416,.044],[4.25,.414,.024]]){
+ const o=new T.Mesh(new T.TorusGeometry(r,w,9,64),edge);o.rotation.x=Math.PI/2;o.position.y=y;o.renderOrder=5;vessel.add(o);
+}
+function stroke(points,color,opacity){
+ const geo=new T.BufferGeometry().setFromPoints(points.map(p=>new T.Vector3(...p)));
+ const o=new T.Line(geo,new T.LineBasicMaterial({color,transparent:true,opacity,depthWrite:false}));o.renderOrder=6;vessel.add(o);
+}
+stroke([[-.92,.48,.64],[-1.02,1.03,.63],[-1.02,2.72,.63],[-.93,3.11,.60],[-.68,3.47,.49]],0xffe3b0,.68);
+stroke([[.82,.65,.86],[.87,1.16,.85],[.88,2.55,.83],[.81,2.88,.79]],0xe0ddd0,.31);
+const particles=[];
+const textures=new Map(),glyphGeometry=new T.PlaneGeometry(1,1);
+function glyphTexture(ch){
+ const k=ch;if(textures.has(k))return textures.get(k);
+ const c=document.createElement('canvas');c.width=c.height=144;const x=c.getContext('2d');
+ x.textAlign='center';x.textBaseline='middle';x.font='600 108px Georgia,"Noto Serif TC",serif';x.fillStyle='#050506';x.fillText(ch,72,76);
+ const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;textures.set(k,t);return t;
+}
+let time=0;
+function target(i,n){
+ const angle=i*2.3999632;
+ const r=.87*Math.sqrt(((i*37)%101+.5)/101);
+ const layer=.38+2.46*(1-Math.exp(-i/52));
+ return new T.Vector3(Math.cos(angle)*r,layer+.10*Math.sin(i*5.2),Math.sin(angle)*r);
+}
+function addGlyph(ch,fly,index){
+ const i=particles.length,ink=glyphTexture(ch);
+ const node=new T.Group();vessel.add(node);
+ for(let z=0;z<3;z++){
+  const material=new T.MeshBasicMaterial({map:ink,color:0xffffff,transparent:true,alphaTest:.32,side:T.DoubleSide,toneMapped:false});
+  const letter=new T.Mesh(glyphGeometry,material);letter.position.z=(z-1)*.034;letter.renderOrder=2;node.add(letter);
+ }
+ const end=target(i),angle=(i%7-3)*.15;
+ particles.push({node,end,angle,begin:fly?time+index*.24:-1,phase:i*1.74,scale:.68+((i*29)%43)/62});
+ node.position.copy(end);node.visible=!fly;
+}
+for(const e of entries)for(const ch of e.glyphs)addGlyph(ch,false,0);
+addVisual=glyphs=>glyphs.forEach((ch,i)=>addGlyph(ch,true,i));
+const mouth=new T.Vector3(0,4.52,0),origin=new T.Vector3(-2.43,4.1,1.1),mid=new T.Vector3(-1.13,5.17,.34);
+let drag=null,yaw=0,pitch=0,shownYaw=0,shownPitch=0,swayX=0,swayZ=0;
+const canvas=renderer.domElement;
+canvas.style.cursor='grab';
+canvas.addEventListener('pointerdown',e=>{
+ if(!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;
+ drag={id:e.pointerId,x:e.clientX,y:e.clientY,yaw,pitch};
+ canvas.setPointerCapture(e.pointerId);canvas.style.cursor='grabbing';
+});
+canvas.addEventListener('pointermove',e=>{
+ if(!drag||drag.id!==e.pointerId)return;
+ yaw=T.MathUtils.clamp(drag.yaw+(e.clientX-drag.x)*.0048,-.47,.47);
+ pitch=T.MathUtils.clamp(drag.pitch+(e.clientY-drag.y)*.0032,-.095,.095);
+});
+function release(e){if(drag?.id===e.pointerId){drag=null;canvas.style.cursor='grab';}}
+for(const type of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(type,release);
+function resize(){
+ const w=stage.clientWidth,h=stage.clientHeight;camera.aspect=w/Math.max(1,h);
+ camera.fov=camera.aspect<.8?43:35;camera.updateProjectionMatrix();renderer.setSize(w,h);
+}
+new ResizeObserver(resize).observe(stage);resize();
+let first;
+renderer.setAnimationLoop(ms=>{
+ first??=ms;time=(ms-first)*.001;
+ const size=Math.max(.105,.49/(1+particles.length*.007));
+ const oldYaw=shownYaw,oldPitch=shownPitch;
+ shownYaw+=(yaw-shownYaw)*.19;shownPitch+=(pitch-shownPitch)*.19;
+ swayX=swayX*.91+(shownYaw-oldYaw)*1.8;
+ swayZ=swayZ*.91+(shownPitch-oldPitch)*2.2;
+ vessel.rotation.set(shownPitch,shownYaw,0);
+ for(const p of particles){
+  const age=time-p.begin;
+  p.node.visible=p.begin<0||age>=0;
+  p.node.scale.setScalar(size*p.scale);
+  if(p.begin>=0&&age<1.7){
+   const t=T.MathUtils.clamp(age/1.7,0,1),u=1-t;
+   p.node.position.copy(origin).multiplyScalar(u*u).addScaledVector(mid,2*u*t).addScaledVector(mouth,t*t);
+  }else if(p.begin>=0&&age<4.5){
+   const t=T.MathUtils.smoothstep(age,1.7,4.5);
+   p.node.position.copy(mouth).lerp(p.end,t);p.node.position.x+=Math.sin(t*8+p.phase)*.17*Math.sin(Math.PI*t);
+  }else{
+   p.node.position.copy(p.end);p.node.position.y+=.031*Math.sin(time*.72+p.phase);p.node.position.x+=swayX*(.55+.35*Math.sin(p.phase));p.node.position.z+=swayZ*(.57+.32*Math.cos(p.phase));
+  }
+  p.node.rotation.set(.13*Math.sin(time+p.phase),.43+.27*Math.sin(time*.65+p.phase),p.angle+.10*Math.sin(time*.81+p.phase)-swayX*1.1);
+ }
+ renderer.render(scene,camera);
+});
+}catch(error){get('status').textContent='玻璃瓶畫面暫時無法載入，仍可留言和翻看留言簿。';console.error(error);}
+</script></html>
