@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>失物宇宙｜失物留言</title>
+<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="messages-endpoint" content="https://lost-universe-echo.papalulala.workers.dev/messages"><title>失物宇宙｜失物留言</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 73% 49%,#fff2c7 0%,#f7d69a 3%,#de945caa 9%,transparent 29%),radial-gradient(ellipse at 71% 50%,#f5d7a1 0%,#be916f66 36%,transparent 63%),linear-gradient(180deg,#9fa7a5 0%,#dbd3bf 28%,#e1c3a0 45%,#75604b 66%,#332d29 84%,#201f1c 100%);color:#f8eed9;font:16px Georgia,"Noto Serif TC",serif;min-height:100dvh}canvas{position:absolute;inset:0;touch-action:none;display:block}main{min-height:100dvh;display:grid;grid-template-columns:minmax(260px,350px) minmax(0,1fr);align-items:center;gap:18px;padding:32px clamp(58px,6vw,90px)}.panel{position:relative;z-index:1;background:#29241eea;border:1px solid #9277598a;border-radius:12px;padding:clamp(16px,2.3vw,26px);box-shadow:0 12px 38px #24171132}small{letter-spacing:.18em;color:#eac897}h1{font:500 clamp(30px,5vw,49px) Georgia,"Noto Serif TC",serif;margin:.18em 0 .38em}p{line-height:1.55}label{display:block;margin:13px 0 5px}input,textarea{width:100%;background:#382e28;border:1px solid #8e735c;border-radius:6px;color:inherit;font:inherit;padding:9px 11px}textarea{min-height:98px;resize:vertical}button{min-height:44px;font:inherit;color:#3f302a;background:#f1d6a7;border:1px solid #aa8758;border-radius:6px;padding:7px 12px;cursor:pointer}.buttons{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}#stage{position:relative;min-height:550px;width:100%}#count{position:absolute;bottom:0;left:0;right:0;text-align:center;pointer-events:none;color:#f1d7b0;font-size:14px}#status{min-height:1.5em;font-size:14px;color:#f4cf92}dialog{width:min(565px,91vw);max-height:80dvh;overflow:auto;color:#46392c;background:#fbefd4;border:1px solid #b59262;border-radius:9px;padding:22px}dialog::backdrop{background:#101623a6}dialog h2{font:500 30px Georgia,"Noto Serif TC",serif;margin:0 0 12px}article{border-top:1px solid #c2a983;padding:13px 0}article h3{margin:0}article p{white-space:pre-wrap;overflow-wrap:anywhere;margin:.35em 0}article time{font-size:12px;color:#77614b}
 @media(max-width:720px){main{grid-template-columns:1fr;padding:18px max(58px,env(safe-area-inset-right)) calc(28px + env(safe-area-inset-bottom)) max(58px,env(safe-area-inset-left));gap:0}.panel{grid-row:2}#stage{min-height:310px;grid-row:1}h1{font-size:32px}#count{bottom:3px}}
@@ -26,9 +26,11 @@
 <dialog id="journal"><h2>失物留言簿</h2><p>這些留言保存在目前的瀏覽器。</p><div id="notes"></div><form method="dialog"><button>闔上留言簿</button></form></dialog>
 <script type="module">
 const get=id=>document.getElementById(id);
+const endpoint=document.querySelector('meta[name=messages-endpoint]').content.trim();
+const shared=Boolean(endpoint)&&location.origin==='https://papalulala.github.io';
 const storeKey='lost-universe-message-bottle-v1';
 let entries=[];
-try{
+if(!shared)try{
  const saved=JSON.parse(localStorage.getItem(storeKey)||'[]');
  if(Array.isArray(saved)){
   entries=saved.filter(e=>e&&typeof e.item==='string'&&typeof e.story==='string'&&Array.isArray(e.glyphs));
@@ -44,7 +46,7 @@ try{
 }catch{}
 const count=()=>get('count').textContent='瓶中有 '+entries.length+' 則回憶 · 拖曳或雙指旋轉可輕轉瓶身';
 const journal=get('journal');
-function openJournal(){
+function renderJournal(){
  const list=get('notes');list.replaceChildren();
  if(!entries.length){const p=document.createElement('p');p.textContent='留言簿還是空的。';list.append(p);}
  for(const e of entries.slice().reverse()){
@@ -53,24 +55,97 @@ function openJournal(){
   const when=new Date(e.date);date.textContent=Number.isFinite(+when)?when.toLocaleString('zh-TW'):'';
   row.append(title,story,date);list.append(row);
  }
+}
+function openJournal(){
+ renderJournal();
  if(!journal.open)journal.showModal();
 }
 get('journal-open').addEventListener('click',openJournal);
-let addVisual=()=>{};
-get('note-form').addEventListener('submit',event=>{
+
+function glyphsFor(item,story){
+ const candidates=Array.from(story).filter(ch=>/[\p{L}\p{N}]/u.test(ch));
+ const pool=candidates.length?candidates:Array.from(item);
+ const length=Math.min(5,pool.length);
+ return Array.from({length},(_,i)=>pool[Math.floor(i*pool.length/length)]);
+}
+let syncVisuals=()=>{};
+let revision=0;
+let pending=null;
+let refreshing=false;
+let hasSynced=false;
+function applyEntries(next,animate=true){
+ entries=next;
+ revision++;
+ count();
+ if(journal.open)renderJournal();
+ syncVisuals(entries,animate);
+}
+async function refreshMessages(){
+ if(refreshing)return;
+ refreshing=true;
+ const started=revision;
+ try{
+  const response=await fetch(endpoint,{cache:'no-store'});
+  if(!response.ok)throw Error(response.status);
+  const {messages}=await response.json();
+  if(started!==revision)return;
+  const animate=hasSynced;
+  hasSynced=true;
+  if(get('status').textContent==='目前無法讀取公開留言，稍後會再試。')get('status').textContent='';
+  if(messages.map(e=>e.id).join()===entries.map(e=>e.id).join())return;
+  applyEntries(messages.map(e=>({...e,glyphs:glyphsFor(e.item,e.story)})),animate);
+ }catch{
+  if(!entries.length&&!pending)get('status').textContent='目前無法讀取公開留言，稍後會再試。';
+ }finally{refreshing=false;}
+}
+
+const form=get('note-form');
+const submit=form.querySelector('[type=submit]');
+form.addEventListener('submit',async event=>{
  event.preventDefault();
  const item=get('item').value.trim(),story=get('memory').value.trim();
  if(!item||!story){get('status').textContent='請填寫失物名稱和故事。';return;}
- const candidates=Array.from(story).filter(ch=>/[\p{L}\p{N}]/u.test(ch));
- const pool=candidates.length?candidates:Array.from(item);
- const glyphs=Array.from({length:Math.min(5,pool.length)},(_,i)=>pool[Math.floor(i*pool.length/Math.min(5,pool.length))]);
- const e={item,story,glyphs,date:new Date().toISOString()};
- entries.push(e);
- try{localStorage.setItem(storeKey,JSON.stringify(entries));get('status').textContent='回憶已收進瓶裡。';}
- catch{get('status').textContent='回憶已加入，但此瀏覽器目前無法保存。';}
- count();addVisual(e.glyphs);event.currentTarget.reset();
+ if(submit.disabled)return;
+ const glyphs=glyphsFor(item,story);
+ if(!shared){
+  const entry={item,story,glyphs,date:new Date().toISOString()};
+  try{
+   localStorage.setItem(storeKey,JSON.stringify([...entries,entry]));
+   applyEntries([...entries,entry]);
+   get('status').textContent='回憶已收進瓶裡。';
+   form.reset();
+  }catch{get('status').textContent='此瀏覽器目前無法保存留言。';}
+  return;
+ }
+ submit.disabled=true;
+ const fields=[get('item'),get('memory')];
+ fields.forEach(field=>field.readOnly=true);
+ if(!pending||pending.item!==item||pending.story!==story)pending={id:crypto.randomUUID(),item,story};
+ try{
+  const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(pending)});
+  if(!response.ok)throw Error(response.status);
+  const {message}=await response.json();
+  if(!entries.some(entry=>entry.id===message.id))applyEntries([...entries,{...message,glyphs}].slice(-40));
+  pending=null;
+  form.reset();
+  get('status').textContent='留言已公開，文字已收進瓶裡。';
+ }catch(error){
+  get('status').textContent=error.message==='429'?'留言太頻繁，請稍等再試。':'留言尚未確認送達，請重試。';
+ }finally{
+  submit.disabled=false;
+  fields.forEach(field=>field.readOnly=false);
+ }
 });
 count();
+if(shared){
+ journal.querySelector('h2 + p').textContent='這裡收錄最近四十則公開留言。';
+ const notice=document.createElement('p');
+ notice.textContent='送出後，所有訪客都能看到這則留言。';
+ form.prepend(notice);
+ refreshMessages();
+ setInterval(()=>{if(!document.hidden)refreshMessages();},5000);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshMessages();});
+}
 try{
 const T=await import('https://cdn.jsdelivr.net/npm/three@0.179.1/build/three.module.js');
 const stage=get('stage'),scene=new T.Scene();
@@ -115,7 +190,7 @@ function stroke(points,color,opacity){
 }
 stroke([[-.92,.48,.64],[-1.02,1.03,.63],[-1.02,2.72,.63],[-.93,3.11,.60],[-.68,3.47,.49]],0xffe3b0,.68);
 stroke([[.82,.65,.86],[.87,1.16,.85],[.88,2.55,.83],[.81,2.88,.79]],0xe0ddd0,.31);
-const particles=[];
+let particles=[]; let glyphIndex=0;
 const textures=new Map(),glyphGeometry=new T.PlaneGeometry(1,1);
 function glyphTexture(ch){
  const k=ch;if(textures.has(k))return textures.get(k);
@@ -130,19 +205,41 @@ function target(i,n){
  const layer=.38+2.46*(1-Math.exp(-i/52));
  return new T.Vector3(Math.cos(angle)*r,layer+.10*Math.sin(i*5.2),Math.sin(angle)*r);
 }
-function addGlyph(ch,fly,index){
- const i=particles.length,ink=glyphTexture(ch);
+function addGlyph(ch,fly,index,entryKey){
+ const i=glyphIndex++,ink=glyphTexture(ch);
  const node=new T.Group();vessel.add(node);
  for(let z=0;z<3;z++){
   const material=new T.MeshBasicMaterial({map:ink,color:0xffffff,transparent:true,alphaTest:.32,side:T.DoubleSide,toneMapped:false});
   const letter=new T.Mesh(glyphGeometry,material);letter.position.z=(z-1)*.034;letter.renderOrder=2;node.add(letter);
  }
  const end=target(i),angle=(i%7-3)*.15;
- particles.push({node,end,angle,begin:fly?time+index*.24:-1,phase:i*1.74,scale:.68+((i*29)%43)/62});
+ particles.push({node,end,angle,entryKey,begin:fly?time+index*.24:-1,phase:i*1.74,scale:.68+((i*29)%43)/62});
  node.position.copy(end);node.visible=!fly;
 }
-for(const e of entries)for(const ch of e.glyphs)addGlyph(ch,false,0);
-addVisual=glyphs=>glyphs.forEach((ch,i)=>addGlyph(ch,true,i));
+syncVisuals=(records,fly)=>{
+ const keyOf=(entry,index)=>entry.id??index;
+ const wanted=new Set(records.map(keyOf));
+ particles=particles.filter(p=>{
+  if(wanted.has(p.entryKey))return true;
+  vessel.remove(p.node);
+  p.node.children.forEach(letter=>letter.material.dispose());
+  return false;
+ });
+ const retained=new Set(particles.map(p=>p.entryKey));
+ let stagger=0;
+ records.forEach((entry,index)=>{
+  const key=keyOf(entry,index);
+  if(retained.has(key))return;
+  entry.glyphs.forEach(ch=>addGlyph(ch,fly,stagger++%8,key));
+ });
+ const used=new Set(records.flatMap(entry=>entry.glyphs));
+ for(const [letter,texture] of textures)if(!used.has(letter)){
+  texture.dispose();
+  textures.delete(letter);
+ }
+ particles.forEach((p,index)=>p.end.copy(target(index)));
+};
+syncVisuals(entries,false);
 const mouth=new T.Vector3(0,4.52,0),origin=new T.Vector3(-2.43,4.1,1.1),mid=new T.Vector3(-1.13,5.17,.34);
 let yaw=0,pitch=0,shownYaw=0,shownPitch=0,swayX=0,swayZ=0;
 const canvas=renderer.domElement;
@@ -205,7 +302,7 @@ renderer.setAnimationLoop(ms=>{
    const t=T.MathUtils.smoothstep(age,1.7,4.5);
    p.node.position.copy(mouth).lerp(p.end,t);p.node.position.x+=Math.sin(t*8+p.phase)*.17*Math.sin(Math.PI*t);
   }else{
-   p.node.position.copy(p.end);p.node.position.y+=.031*Math.sin(time*.72+p.phase);p.node.position.x+=swayX*(.55+.35*Math.sin(p.phase));p.node.position.z+=swayZ*(.57+.32*Math.cos(p.phase));
+   p.node.position.copy(p.end);p.node.position.y+=.075*Math.sin(time*.72+p.phase);p.node.position.x+=.13*Math.cos(time*.48+p.phase)+swayX*(.55+.35*Math.sin(p.phase));p.node.position.z+=.14*Math.sin(time*.59+p.phase)+swayZ*(.57+.32*Math.cos(p.phase));
   }
   p.node.rotation.set(.13*Math.sin(time+p.phase),.43+.27*Math.sin(time*.65+p.phase),p.angle+.10*Math.sin(time*.81+p.phase)-swayX*1.1);
  }
