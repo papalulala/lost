@@ -24,8 +24,6 @@ button:focus-visible{outline:2px solid #f4bd64;outline-offset:2px}
 #status{min-height:1.4em;margin:.35rem 0 .6rem}
 #launch{padding:0 1em}
 [hidden]{display:none!important}
-#table-word{position:fixed;z-index:1;top:clamp(70px,13vh,122px);left:50%;transform:translateX(-50%);display:flex;gap:.27em;pointer-events:none;font-size:clamp(28px,6.5vw,76px);font-weight:700;color:#fff1c3;text-shadow:0 2px 18px #d08a42}
-#table-word span{opacity:0;transition:opacity .36s ease}
 #peg-story{width:min(27rem,calc(100% - 2rem));max-height:78dvh;border:1px solid #bc925f;border-radius:10px;padding:1.4rem;background:#f4e6ca;color:#38291f}
 #peg-story::backdrop{background:#201713ac}
 #peg-story h2{margin:0 0 .75rem}
@@ -57,7 +55,6 @@ button:focus-visible{outline:2px solid #f4bd64;outline-offset:2px}
 <body>
 <nav class="scene-nav" aria-label="場景切換"><a href="ruined-watch-shop.html" aria-label="上一個場景，停擺的修錶店" title="停擺的修錶店"></a><a href="blackout-stairwell.html" aria-label="下一個場景，停在七樓的電梯" title="停在七樓的電梯"></a></nav>
 <header><small>失物宇宙</small><h1>影子的兩端</h1><span id="lost-count" aria-live="polite">失物 0 / 5</span></header>
-<div id="table-word" aria-label="字母收集進度" hidden><span>S</span><span>H</span><span>A</span><span>N</span></div>
 <footer>
 <p id="status" aria-live="polite">拖曳旋轉迷宮，找出牆上和地面的五個字母。</p>
 <form id="letter-form" aria-label="輸入找到的五個字母" autocomplete="off">
@@ -583,8 +580,8 @@ for(let row=0;row<6;row++){
   target(x,y,.027,.098,.098,.145,0xb59a70,'pin');
  }
 }
-const binLetters=[...'SJHINDFWA'];
-const binCount=binLetters.length,binLeft=-2.67,binRight=2.20,binWidth=(binRight-binLeft)/binCount;
+const binScores=[5,10,1,30,10,5,10,1,10];
+const binCount=binScores.length,binLeft=-2.67,binRight=2.20,binWidth=(binRight-binLeft)/binCount;
 for(let i=1;i<binCount;i++)target(binLeft+i*binWidth,-2.18,.07,.079,1.04,.25,troughWoodColor);
 for(let i=0;i<3;i++)target(2.27,-2.31+i*1.805,.205,.14,1.809,.51,frameWoodColor);
 for(let i=0;boardTargets.length<blocks.length;i++){
@@ -1005,17 +1002,6 @@ const markers=new T.Group();
 board.add(markers);
 const frameTrim=new T.MeshStandardMaterial({color:frameWoodColor,map:honeyTexture,roughness:.69});
 const troughWood=new T.MeshStandardMaterial({color:troughWoodColor,map:honeyTexture,roughness:.76});
-const railPath=new T.CatmullRomCurve3([
- new T.Vector3(-2.59,1.86,.10),new T.Vector3(-2.33,2.79,.10),
- new T.Vector3(-1.46,3.34,.10),new T.Vector3(-.53,3.47,.10),
- new T.Vector3(.60,3.47,.10),new T.Vector3(1.58,3.26,.10),
- new T.Vector3(2.14,2.76,.10),new T.Vector3(2.27,2.20,.10)
-]);
-for(const height of [.045,.12,.195,.27,.345,.42]){
- const arch=railPath.clone();
- arch.points.forEach(point=>point.z=height);
- markers.add(new T.Mesh(new T.TubeGeometry(arch,58,.061,9,false),frameTrim));
-}
 function tableDetail(material,x,y,z,w,h,d){
  const part=new T.Mesh(blockShape,material);
  part.position.set(x,y,z);
@@ -1103,7 +1089,6 @@ markers.add(plungerLink);
 const linkStart=new T.Vector3(),linkEnd=new T.Vector3(),linkDirection=new T.Vector3();
 const plungerUp=new T.Vector3(0,1,0);
 const storyPins=[];
-let tableRewardsEnabled=true;
 const storyQueue=[];
 const pegStory=document.querySelector('#peg-story');
 const lostCount=document.querySelector('#lost-count');
@@ -1211,17 +1196,17 @@ function makeStoryPin(peg,index){
  markers.add(object);
  return {object,x:peg.x,y:peg.y,story:pinStories[index],age:0,found:false};
 }
-function resetStoryPins(){
+function resetStoryPins(keepDiscoveries){
  storyQueue.length=0;
  displayedStory=null;
  if(pegStory.open)pegStory.close();
  for(const item of storyPins){
-  item.found=false;
+  if(!keepDiscoveries)item.found=false;
   item.object.visible=false;
  }
 }
 function startStoryPin(item){
- if(!tableRewardsEnabled||!item||item.found)return;
+ if(!item||item.found)return;
  item.found=true;
  item.age=0;
  item.object.visible=true;
@@ -1293,7 +1278,7 @@ const crossbar=new T.Mesh(new T.CylinderGeometry(.028,.028,binRight-binLeft,14),
 crossbar.rotation.z=Math.PI/2;
 crossbar.position.set((binLeft+binRight)/2,-2.77,.21);
 markers.add(crossbar);
-binLetters.forEach((value,i)=>{
+binScores.forEach((value,i)=>{
  const tile=document.createElement('canvas');
  tile.width=tile.height=64;
  const ink=tile.getContext('2d');
@@ -1538,17 +1523,8 @@ function createDragControls(camera, canvas, target, minDistance, maxDistance, ab
  return controls;
 }
 let phase='maze',phaseStart=0,now=0,previous=0;
-const tableWord=document.querySelector('#table-word');
-const wordLetters=[...tableWord.children];
-const binHits=Array(binCount).fill(0);
 let tableWonAt=null;
 let tableTransitionDistance=tableCamera.length();
-function showWordProgress(){
- wordLetters.forEach(letter=>{
-  const count=binHits[binLetters.indexOf(letter.textContent)];
-  letter.style.opacity=[0,.27,.61,1][Math.min(3,count)];
- });
-}
 const activeMarbles=[];
 let tableTilt=0,requestedTilt=0,tableDrag=null,plungerDrag=null,plungerPull=0;
 const letters=[...letterForm.querySelectorAll('input')];
@@ -1564,7 +1540,6 @@ function reset(){
  endingActions.hidden=true;
  finaleMap.visible=false;
  rotateFinalMap.enabled=false;
- tableWord.hidden=true;
  resetMarbles();
  tableTilt=requestedTilt=0;
  tableDrag=plungerDrag=null;
@@ -1677,19 +1652,15 @@ function rebuild(time=(now-phaseStart)/1000){
  launch.hidden=false;
  status.textContent='向下拉右下角的拉柄，放手發射。左右拖曳可輕搖台面。';
  resize();
- tableWord.hidden=false;
 }
 const ballRadius=.115;
 const guide=new T.CatmullRomCurve3([
  new T.Vector3(2.49,-3.28,.13),new T.Vector3(2.49,2.15,.13),
  new T.Vector3(2.21,3.11,.13),new T.Vector3(1.41,3.30,.13)
 ]);
-function resetMarbles({rewards=true}={}){
- tableRewardsEnabled=rewards;
- resetStoryPins();
- binHits.fill(0);
+function resetMarbles({keepDiscoveries=false}={}){
+ resetStoryPins(keepDiscoveries);
  tableWonAt=null;
- showWordProgress();
  for(const marble of activeMarbles)board.remove(marble.mesh);
  activeMarbles.length=0;
  for(const {mesh} of settledMarbles)mesh.removeFromParent();
@@ -1717,15 +1688,6 @@ function scoreMarble(b){
  mesh.position.set(b.x,b.y,.13);
  markers.add(mesh);
  settledMarbles.push({mesh,bin:b.bin});
- binHits[b.bin]++;
- showWordProgress();
- const complete=wordLetters.every(letter=>binHits[binLetters.indexOf(letter.textContent)]>=1);
- if(complete&&tableWonAt===null){
-  tableWonAt=now;
-  launch.disabled=true;
-  status.textContent='SHAN 已集齊。';
-
- }
  b.settled=true;
 }
 function shoot(strength=.66){
@@ -1743,7 +1705,7 @@ function shoot(strength=.66){
 }
 launch.addEventListener('click',()=>{
  if(phase!=='table'||storyPaused()||tableWonAt!==null)return;
- resetMarbles({rewards:false});
+ resetMarbles({keepDiscoveries:true});
  tableDrag=plungerDrag=null;
  requestedTilt=plungerPull=0;
  status.textContent='向下拉右下角的拉柄，放手發射。左右拖曳可輕搖台面。';
@@ -1756,7 +1718,6 @@ function openMaze(){
  for(const b of blocks)scene.attach(b.mesh);
  for(const {mesh} of activeMarbles)board.remove(mesh);
  activeMarbles.length=0;
- tableWord.hidden=true;
  launch.hidden=true;
  phase='to-maze';
  phaseStart=now;
@@ -2012,6 +1973,10 @@ renderer.setAnimationLoop(ms=>{
    updateBall(dt);
   }
   updateStoryPins(dt);
+  if(tableWonAt===null&&marblesRemaining===0&&activeMarbles.length===0&&!storyPaused()&&storyPins.every(item=>item.found)){
+   tableWonAt=ms;
+   launch.disabled=true;
+  }
   if(tableWonAt!==null&&ms-tableWonAt>1100&&!storyPaused())openMaze();
  }
  renderer.render(scene,camera);
