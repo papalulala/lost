@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>童年｜失物宇宙</title>
+<title>影子的兩端｜失物宇宙</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;min-height:100vh;min-height:100dvh;background:
@@ -56,7 +56,7 @@ button:focus-visible{outline:2px solid #f4bd64;outline-offset:2px}
 </head>
 <body>
 <nav class="scene-nav" aria-label="場景切換"><a href="ruined-watch-shop.html" aria-label="上一個場景，停擺的修錶店" title="停擺的修錶店"></a><a href="blackout-stairwell.html" aria-label="下一個場景，停在七樓的電梯" title="停在七樓的電梯"></a></nav>
-<header><small>失物宇宙</small><h1>童年</h1><span id="lost-count" aria-live="polite">失物 0 / 5</span></header>
+<header><small>失物宇宙</small><h1>影子的兩端</h1><span id="lost-count" aria-live="polite">失物 0 / 5</span></header>
 <div id="table-word" aria-label="字母收集進度" hidden><span>S</span><span>H</span><span>A</span><span>N</span></div>
 <footer>
 <p id="status" aria-live="polite">拖曳旋轉迷宮，找出牆上和地面的五個字母。</p>
@@ -1103,6 +1103,7 @@ markers.add(plungerLink);
 const linkStart=new T.Vector3(),linkEnd=new T.Vector3(),linkDirection=new T.Vector3();
 const plungerUp=new T.Vector3(0,1,0);
 const storyPins=[];
+let tableRewardsEnabled=true;
 const storyQueue=[];
 const pegStory=document.querySelector('#peg-story');
 const lostCount=document.querySelector('#lost-count');
@@ -1220,7 +1221,7 @@ function resetStoryPins(){
  }
 }
 function startStoryPin(item){
- if(!item||item.found)return;
+ if(!tableRewardsEnabled||!item||item.found)return;
  item.found=true;
  item.age=0;
  item.object.visible=true;
@@ -1683,7 +1684,8 @@ const guide=new T.CatmullRomCurve3([
  new T.Vector3(2.49,-3.28,.13),new T.Vector3(2.49,2.15,.13),
  new T.Vector3(2.21,3.11,.13),new T.Vector3(1.41,3.30,.13)
 ]);
-function resetMarbles(){
+function resetMarbles({rewards=true}={}){
+ tableRewardsEnabled=rewards;
  resetStoryPins();
  binHits.fill(0);
  tableWonAt=null;
@@ -1741,7 +1743,7 @@ function shoot(strength=.66){
 }
 launch.addEventListener('click',()=>{
  if(phase!=='table'||storyPaused()||tableWonAt!==null)return;
- resetMarbles();
+ resetMarbles({rewards:false});
  tableDrag=plungerDrag=null;
  requestedTilt=plungerPull=0;
  status.textContent='向下拉右下角的拉柄，放手發射。左右拖曳可輕搖台面。';
