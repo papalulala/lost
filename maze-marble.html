@@ -54,11 +54,11 @@ button:focus-visible{outline:2px solid #f4bd64;outline-offset:2px}
 </head>
 <body>
 <nav class="scene-nav" aria-label="場景切換"><a href="ruined-watch-shop.html" aria-label="上一個場景，停擺的修錶店" title="停擺的修錶店"></a><a href="blackout-stairwell.html" aria-label="下一個場景，停在七樓的電梯" title="停在七樓的電梯"></a></nav>
-<header><small>失物宇宙</small><h1>影子的兩端</h1><span id="lost-count" aria-live="polite">失物 0 / 5</span></header>
+<header><small>失物宇宙</small><h1>影子的兩端</h1><span id="lost-count" aria-live="polite">失物 0 / 5</span> <span id="table-score" hidden aria-live="polite"></span></header>
 <footer>
-<p id="status" aria-live="polite">拖曳旋轉迷宮，找出牆上和地面的五個字母。</p>
-<form id="letter-form" aria-label="輸入找到的五個字母" autocomplete="off">
-<input aria-label="第 1 格" inputmode="text" maxlength="1" spellcheck="false"><input aria-label="第 2 格" inputmode="text" maxlength="1" spellcheck="false"><input aria-label="第 3 格" inputmode="text" maxlength="1" spellcheck="false"><input aria-label="第 4 格" inputmode="text" maxlength="1" spellcheck="false"><input aria-label="第 5 格" inputmode="text" maxlength="1" spellcheck="false">
+<p id="status" aria-live="polite">拖曳旋轉迷宮，找出牆上和地面的四個數字。</p>
+<form id="letter-form" aria-label="輸入找到的四個數字" autocomplete="off">
+<input aria-label="第 1 格" inputmode="numeric" maxlength="1" spellcheck="false"><input aria-label="第 2 格" inputmode="numeric" maxlength="1" spellcheck="false"><input aria-label="第 3 格" inputmode="numeric" maxlength="1" spellcheck="false"><input aria-label="第 4 格" inputmode="numeric" maxlength="1" spellcheck="false">
 </form>
 <button id="launch" hidden>重置彈珠</button>
 <div id="ending-actions" hidden><button type="button" id="replay-table">重玩彈珠台</button><button type="button" id="replay-maze">重玩迷宮</button></div>
@@ -674,8 +674,8 @@ function stoneLetter(letter,origin,direction,surfaces){
  ruins.add(glyph);
  return glyph;
 }
-stoneLetter('L',new T.Vector3(-2.34,.34,7),new T.Vector3(0,0,-1),wallMeshes);
-stoneLetter('A',new T.Vector3(7,.34,-1.56),new T.Vector3(-1,0,0),wallMeshes);
+stoneLetter('1',new T.Vector3(-2.34,.34,7),new T.Vector3(0,0,-1),wallMeshes);
+stoneLetter('9',new T.Vector3(7,.34,-1.56),new T.Vector3(-1,0,0),wallMeshes);
 const extinguishedTorch=torches[0];
 extinguishedTorch.flame.visible=false;
 extinguishedTorch.light.intensity=0;
@@ -691,7 +691,7 @@ for(const plant of extinguishedTorch.plants){
 }
 const beneathTorch=torchFace.localToWorld(new T.Vector3(.13,pHeight,.78));
 const towardWall=new T.Vector3(0,0,-1).applyQuaternion(torchFace.quaternion);
-const hiddenP=stoneLetter('P',beneathTorch,towardWall,[extinguishedTorch.wallMesh]);
+const hiddenZero=stoneLetter('0',beneathTorch,towardWall,[extinguishedTorch.wallMesh]);
 const ignitionPoint=torchFace.localToWorld(new T.Vector3(.13,0,.23));
 const torchOutward=towardWall.clone().negate();
 const clueBracket=new T.Mesh(
@@ -714,8 +714,8 @@ function resetHiddenP(){
  pReveal=0;
  clueSparks.visible=false;
  clueBracket.material.emissiveIntensity=.45;
- hiddenP.visible=false;
- hiddenP.material.opacity=0;
+ hiddenZero.visible=false;
+ hiddenZero.material.opacity=0;
  extinguishedTorch.flame.visible=false;
  extinguishedTorch.light.intensity=0;
 }
@@ -749,11 +749,11 @@ function updateTorch(time){
 function updateHiddenP(dt,time){
  updateTorch(time);
  if(!extinguishedTorch.flame.visible&&!critters.every(critter=>!critter.alive))return;
- hiddenP.visible=true;
+ hiddenZero.visible=true;
  pReveal=Math.min(1,pReveal+dt*2.4);
- hiddenP.material.opacity=T.MathUtils.smoothstep(pReveal,0,1);
+ hiddenZero.material.opacity=T.MathUtils.smoothstep(pReveal,0,1);
 }
-for(const [letter,[x,z]] of [['I',[1,1]],['S',[9,9]]]){
+for(const [letter,[x,z]] of [['9',[1,1]]]){
  stoneLetter(letter,mazePosition(x,z,4),new T.Vector3(0,-1,0),floorMeshes);
 }
 const fireRadius=.155;
@@ -1092,6 +1092,8 @@ const storyPins=[];
 const storyQueue=[];
 const pegStory=document.querySelector('#peg-story');
 const lostCount=document.querySelector('#lost-count');
+const tableScore=document.querySelector('#table-score');
+let score=0;
 const foundKeepsakes=new Set();
 function countKeepsake(name){
  foundKeepsakes.add(name);
@@ -1546,8 +1548,9 @@ function reset(){
  plungerPull=0;
  board.quaternion.copy(boardQuaternion);
  letterForm.reset();
- status.textContent='拖曳旋轉迷宮，找出牆上和地面的五個字母。';
+ status.textContent='拖曳旋轉迷宮，找出牆上和地面的四個數字。';
  letterForm.hidden=false;launch.hidden=true;
+ tableScore.hidden=true;
  rotateMaze.enabled=true;
  ruins.visible=true;
  fireball.visible=true;
@@ -1578,10 +1581,10 @@ function reset(){
 }
 function checkLetters(){
  if(phase!=='maze')return;
- const filled=letters.map(field=>field.value.toLowerCase()).filter(Boolean);
- if(filled.length<5)return;
- if(filled.slice().sort().join('')!=='ailps'){
-  status.textContent='這組字母沒有打開迷宮，再找找看。';
+ const filled=letters.map(field=>field.value).filter(Boolean);
+ if(filled.length<letters.length)return;
+ if(filled.slice().sort().join('')!=='0199'){
+  status.textContent='這組數字沒有打開迷宮，再找找看。';
   return;
  }
  phase='reveal-map';phaseStart=now;
@@ -1595,12 +1598,12 @@ function checkLetters(){
 letterForm.addEventListener('submit',event=>{event.preventDefault();checkLetters();});
 letters.forEach((field,index)=>{
  field.addEventListener('input',()=>{
-  field.value=field.value.normalize('NFKC').replace(/[^a-z]/gi,'').slice(-1);
+  field.value=field.value.normalize('NFKC').replace(/[^0-9]/g,'').slice(-1);
   if(field.value&&index<letters.length-1){letters[index+1].focus();letters[index+1].select();}
   checkLetters();
  });
  field.addEventListener('paste',event=>{
-  const value=event.clipboardData.getData('text').normalize('NFKC').replace(/[^a-z]/gi,'');
+  const value=event.clipboardData.getData('text').normalize('NFKC').replace(/[^0-9]/g,'');
   if(!value)return;
   event.preventDefault();
   [...value].slice(0,letters.length-index).forEach((letter,offset)=>{letters[index+offset].value=letter;});
@@ -1650,6 +1653,7 @@ function rebuild(time=(now-phaseStart)/1000){
  for(const b of blocks)board.attach(b.mesh);
  markers.visible=true;
  launch.hidden=false;
+ tableScore.hidden=false;
  status.textContent='向下拉右下角的拉柄，放手發射。左右拖曳可輕搖台面。';
  resize();
 }
@@ -1660,6 +1664,8 @@ const guide=new T.CatmullRomCurve3([
 ]);
 function resetMarbles({keepDiscoveries=false}={}){
  resetStoryPins(keepDiscoveries);
+ score=0;
+ tableScore.textContent='分數 '+score;
  tableWonAt=null;
  for(const marble of activeMarbles)board.remove(marble.mesh);
  activeMarbles.length=0;
@@ -1688,6 +1694,8 @@ function scoreMarble(b){
  mesh.position.set(b.x,b.y,.13);
  markers.add(mesh);
  settledMarbles.push({mesh,bin:b.bin});
+ score+=binScores[b.bin];
+ tableScore.textContent='分數 '+score;
  b.settled=true;
 }
 function shoot(strength=.66){
@@ -1719,6 +1727,7 @@ function openMaze(){
  for(const {mesh} of activeMarbles)board.remove(mesh);
  activeMarbles.length=0;
  launch.hidden=true;
+ tableScore.hidden=true;
  phase='to-maze';
  phaseStart=now;
  status.textContent='彈珠台正在重新組合。';
