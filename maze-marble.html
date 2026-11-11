@@ -1,0 +1,2019 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>迷宮碎成彈珠台｜失物宇宙</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;min-height:100dvh;background:
+ radial-gradient(ellipse at 72% 49%,#fdb34e 0%,#be5c32 24%,transparent 57%),
+ radial-gradient(ellipse 65% 14% at 27% 18%,#251d28a8 2%,#492e3299 62%,transparent 100%),
+ radial-gradient(ellipse 67% 13% at 78% 9%,#1c1722d4 0%,#2c1b24ab 58%,transparent 100%),
+ linear-gradient(180deg,#221924,#734032 38%,#a85a35 52%,#462a30 76%,#171623);background-repeat:no-repeat;color:#fff0ce;font-family:Georgia,"Microsoft JhengHei",serif}
+canvas{display:block;touch-action:none}
+header,footer{position:fixed;z-index:1;text-shadow:0 2px 10px #211713}
+header{top:max(16px,env(safe-area-inset-top));left:5vw;pointer-events:none}
+h1{font-weight:500;font-size:clamp(24px,4.7vw,46px);margin:.24em 0}
+footer{bottom:max(14px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);text-align:center;width:min(92vw,570px)}
+button{font:inherit;min-width:48px;min-height:44px;border:1px solid #c19760;border-radius:6px;background:#342720;color:#fff0ce;cursor:pointer}
+button:focus-visible{outline:2px solid #f4bd64;outline-offset:2px}
+#letter-form{display:flex;justify-content:center;gap:7px}
+#letter-form input{width:clamp(36px,10vw,50px);height:45px;border:1px solid #c19760;border-radius:6px;background:#342720;color:#fff0ce;text-align:center;font:700 22px Georgia,serif;text-transform:uppercase}
+#letter-form input:focus-visible{outline:2px solid #f4bd64;outline-offset:2px}
+#status{min-height:1.4em;margin:.35rem 0 .6rem}
+#launch{padding:0 1em}
+[hidden]{display:none!important}
+#table-word{position:fixed;z-index:1;top:clamp(70px,13vh,122px);left:50%;transform:translateX(-50%);display:flex;gap:.27em;pointer-events:none;font-size:clamp(28px,6.5vw,76px);font-weight:700;color:#fff1c3;text-shadow:0 2px 18px #d08a42}
+#table-word span{opacity:0;transition:opacity .36s ease}
+#peg-story{width:min(27rem,calc(100% - 2rem));max-height:78dvh;border:1px solid #bc925f;border-radius:10px;padding:1.4rem;background:#f4e6ca;color:#38291f}
+#peg-story::backdrop{background:#201713ac}
+#peg-story h2{margin:0 0 .75rem}
+#peg-story p{white-space:pre-line;line-height:1.75}
+#ending-actions{display:flex;justify-content:center;gap:8px}
+#ending-actions button{padding:.35em .65em}
+@media(pointer:coarse),(max-width:600px){
+ footer{width:min(570px,calc(100% - 110px))}
+ #letter-form{gap:4px}
+ #letter-form input{width:min(10vw,50px);min-width:0}
+}
+</style>
+<style id="scene-nav-style">
+.scene-nav a{position:fixed;top:50%;transform:translateY(-50%);z-index:5;display:grid;place-items:center;width:44px;height:48px;border:1px solid #78654e88;border-radius:8px;background:#fbf5e1dd;color:#493a2b;box-shadow:0 3px 12px #30291626;touch-action:manipulation}
+.scene-nav a:hover,.scene-nav a:focus-visible{background:#fff2d1;color:#6d4229;outline:2px solid #a46c42;outline-offset:3px}
+.scene-nav a:first-child{left:max(8px,env(safe-area-inset-left))}
+.scene-nav a:last-child{right:max(8px,env(safe-area-inset-right))}
+.scene-nav a::after{content:"";border-top:8px solid transparent;border-bottom:8px solid transparent;border-left:12px solid currentColor}
+.scene-nav a:first-child::after{transform:rotate(180deg)}
+</style>
+<style id="mobile-scene-navigation">
+@media (pointer:coarse), (max-width:600px){
+ nav[aria-label="場景切換"] a{top:auto;bottom:calc(53px + env(safe-area-inset-bottom));transform:none;width:48px;height:48px;z-index:5;touch-action:manipulation}
+ nav[aria-label="場景切換"] a:first-child{left:max(8px,env(safe-area-inset-left))}
+ nav[aria-label="場景切換"] a:last-child{right:max(8px,env(safe-area-inset-right))}
+}
+</style>
+</head>
+<body>
+<nav class="scene-nav" aria-label="場景切換"><a href="ruined-watch-shop.html" aria-label="上一個場景，停擺的修錶店" title="停擺的修錶店"></a><a href="blackout-stairwell.html" aria-label="下一個場景，停在七樓的電梯" title="停在七樓的電梯"></a></nav>
+<header><small>失物宇宙</small><h1>迷宮碎成彈珠台</h1><span id="lost-count" aria-live="polite">失物 0 / 5</span></header>
+<div id="table-word" aria-label="字母收集進度" hidden><span>S</span><span>H</span><span>A</span><span>N</span></div>
+<footer>
+<p id="status" aria-live="polite">拖曳旋轉迷宮，找出牆上和地面的五個字母。</p>
+<form id="letter-form" aria-label="輸入找到的五個字母" autocomplete="off">
+<input aria-label="第 1 格" inputmode="text" maxlength="1" spellcheck="false"><input aria-label="第 2 格" inputmode="text" maxlength="1" spellcheck="false"><input aria-label="第 3 格" inputmode="text" maxlength="1" spellcheck="false"><input aria-label="第 4 格" inputmode="text" maxlength="1" spellcheck="false"><input aria-label="第 5 格" inputmode="text" maxlength="1" spellcheck="false">
+</form>
+<button id="launch" hidden>重置彈珠</button>
+<div id="ending-actions" hidden><button type="button" id="replay-table">重玩彈珠台</button><button type="button" id="replay-maze">重玩迷宮</button></div>
+</footer>
+<dialog id="peg-story" aria-labelledby="peg-story-title"><h2 id="peg-story-title"></h2><p id="peg-story-text"></p><form method="dialog"><button>回到彈珠台</button></form></dialog>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.179.1/build/three.module.js"}}</script>
+<script type="module">
+import * as T from 'three';
+import {RoundedBoxGeometry} from 'https://cdn.jsdelivr.net/npm/three@0.179.1/examples/jsm/geometries/RoundedBoxGeometry.js';
+
+const scene=new T.Scene();
+const camera=new T.PerspectiveCamera(40,1,.1,90);
+const renderer=new T.WebGLRenderer({alpha:true,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));
+renderer.toneMapping=T.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.12;
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=T.PCFSoftShadowMap;
+document.body.prepend(renderer.domElement);
+const ambient=new T.HemisphereLight(0xc9b6bf,0x41465b,1.14);
+const sun=new T.DirectionalLight(0xffb365,3.45);
+sun.position.set(10,4.4,-5.7);
+sun.castShadow=true;
+sun.shadow.mapSize.set(1536,1536);
+Object.assign(sun.shadow.camera,{left:-8,right:8,top:8,bottom:-8,near:.3,far:29});
+sun.shadow.bias=-.00045;
+sun.shadow.normalBias=.015;
+const skyFill=new T.DirectionalLight(0xa8bce2,.52);
+skyFill.position.set(-5,5,7);
+scene.add(ambient,sun,skyFill);
+
+const status=document.querySelector('#status');
+const letterForm=document.querySelector('#letter-form'),launch=document.querySelector('#launch');
+let seed=74026;
+function random(){
+ seed=(Math.imul(seed,1664525)+1013904223)>>>0;
+ return seed/4294967296;
+}
+const size=11;
+const grid=Array.from({length:size},()=>Array(size).fill(true));
+const steps=[[0,-1],[1,0],[0,1],[-1,0]];
+const stack=[[1,1]];
+grid[1][1]=false;
+while(stack.length){
+ const [x,z]=stack.at(-1);
+ const choices=steps.map(([dx,dz])=>[x+dx*2,z+dz*2]).filter(([a,b])=>a>0&&b>0&&a<size-1&&b<size-1&&grid[b][a]);
+ if(!choices.length){stack.pop();continue;}
+ const [a,b]=choices[Math.floor(random()*choices.length)];
+ grid[(z+b)/2][(x+a)/2]=grid[b][a]=false;
+ stack.push([a,b]);
+}
+const cell=.78;
+const mazePosition=(x,z,y=0)=>new T.Vector3((x-5)*cell,y,(z-5)*cell);
+const blockShape=new RoundedBoxGeometry(1,1,1,2,.06);
+const stoneTile=document.createElement('canvas');
+stoneTile.width=stoneTile.height=128;
+const stoneInk=stoneTile.getContext('2d');
+const pixels=stoneInk.createImageData(128,128);
+for(let y=0;y<128;y++)for(let x=0;x<128;x++){
+ const grit=(Math.imul(x+17,83492791)^Math.imul(y+7,19349663))>>>25;
+ const grain=22*Math.sin(x*.13+y*.095)+14*Math.cos(x*.23-y*.31);
+ const veins=14*Math.sin(x*.058+y*.14+2*Math.cos(x*.08-y*.035));
+  const coarse=(Math.imul((x>>2)+19,2654435761)^Math.imul((y>>2)+27,1597334677))>>>26;
+ const pits=grit>111?-24:0;
+ const value=193+grit*.37+coarse*.37+grain*.65+veins*.69+pits;
+ const i=(y*128+x)*4;
+ pixels.data.set([value,value,value,255],i);
+}
+stoneInk.putImageData(pixels,0,0);
+const rockBump=.088;
+const stoneRelief=new T.CanvasTexture(stoneTile);
+const stoneColor=stoneRelief.clone();
+stoneColor.colorSpace=T.SRGBColorSpace;
+stoneColor.needsUpdate=true;
+const rockShapes=Array.from({length:9},(_,variant)=>{
+ const shape=new RoundedBoxGeometry(1,1,1,2,.23);
+ const position=shape.attributes.position;
+ const phase=variant*1.91;
+ for(let i=0;i<position.count;i++){
+  const x=position.getX(i),y=position.getY(i),z=position.getZ(i);
+  const wave=Math.sin(x*5.6+y*4.4+z*6+phase);
+  const chip=Math.cos(z*8.2-x*5.1+y*4.7+phase*1.3);
+  const taper=1-.25*Math.max(0,y+.11);
+  const crown=T.MathUtils.smoothstep(y,.18,.48);
+  const fracture=x*.73+z*.39+.13*Math.sin(phase);
+  const brokenPlane=fracture>0?-.115*fracture:.065*fracture;
+  const split=-.055*Math.exp(-Math.abs(fracture+.065*Math.sin(z*7+phase))*21);
+  const ridge=crown*(brokenPlane+split+.034*Math.cos(z*10+phase));
+  position.setXYZ(i,x*taper+.073*wave+.085*y,y+.057*chip+.033*wave+ridge,z*taper+.057*chip-.06*y);
+ }
+ shape.computeVertexNormals();
+ shape.morphAttributes.position=[blockShape.attributes.position];
+ shape.morphAttributes.normal=[blockShape.attributes.normal];
+ return shape;
+});
+const blocks=[];
+function rockSurface(material,index,isWall){
+ const hasMoss=index%7<3&&(isWall||index%3===0);
+ const angle=index*2.39996;
+ const onCrown=index%4!==1;
+ const center=new T.Vector3(
+  Math.cos(angle)*(onCrown?.19:.43),
+  onCrown?.48:-.09+.24*Math.sin(index),
+  Math.sin(angle)*(onCrown?.19:.43)
+ );
+ const fade={value:1};
+ const tableSurface={
+  texture:{value:stoneColor},tint:{value:new T.Color(0xffffff)},
+  uv:{value:new T.Vector4(1,1,0,0)},wood:{value:0}
+ };
+ material.userData.tableSurface=tableSurface;
+ material.onBeforeCompile=shader=>{
+  shader.uniforms.mossCenter={value:center};
+  shader.uniforms.stoneFade=fade;
+  shader.uniforms.tableTexture=tableSurface.texture;
+  shader.uniforms.tableTint=tableSurface.tint;
+  shader.uniforms.tableUvTransform=tableSurface.uv;
+  shader.uniforms.tableWood=tableSurface.wood;
+  shader.uniforms.mossAmount={value:hasMoss?1:0};
+  shader.uniforms.leftStone={value:new T.Color(0x788a9a)};
+  shader.uniforms.rightStone={value:new T.Color(0x9b968d)};
+  shader.uniforms.mossShade={value:new T.Color(0x326B5D)};
+  shader.uniforms.mossMid={value:new T.Color(0x5BA45C)};
+  shader.uniforms.mossLight={value:new T.Color(0x75B95A)};
+  shader.vertexShader='varying vec3 mossPoint; varying float stoneX; varying vec2 joineryUv;\n'+shader.vertexShader.replace(
+   '#include <begin_vertex>','#include <begin_vertex>\nmossPoint=position; stoneX=(modelMatrix*vec4(transformed,1.)).x; joineryUv=uv;');
+  shader.fragmentShader=`uniform vec3 mossCenter;
+uniform float stoneFade,mossAmount,tableWood;
+uniform sampler2D tableTexture;
+uniform vec3 tableTint;
+uniform vec4 tableUvTransform;
+varying vec2 joineryUv;
+uniform vec3 leftStone,rightStone,mossShade,mossMid,mossLight;
+varying float stoneX;
+varying vec3 mossPoint;
+`+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+ vec3 delta=mossPoint-mossCenter;
+ float waviness=.066*sin(mossPoint.x*27.+sin(mossPoint.z*22.))+.049*cos(mossPoint.z*31.+mossPoint.y*17.);
+ float edge=length(delta*vec3(.92,1.02,1.)) + waviness;
+ float cover=(1.-smoothstep(.31,.50,edge))*mossAmount;
+ vec3 cell=floor(mossPoint*170.);
+ float speck=fract(sin(dot(cell,vec3(19.63,67.21,113.87)))*43758.54);
+ float mottling=.5+.5*sin(mossPoint.x*47.+mossPoint.z*28.)*cos(mossPoint.y*43.-mossPoint.z*27.);
+ float mossBlend=smoothstep(-4.1,4.1,stoneX+.52*delta.x+.32*delta.y);
+ vec3 mossColor=mix(mossShade,mossMid,smoothstep(0.,.66,mossBlend));
+ mossColor=mix(mossColor,mossLight,smoothstep(.40,1.,mossBlend)*.80);
+ mossColor*=.91+.11*mottling+.045*speck;
+ float across=smoothstep(-4.15,4.15,stoneX);
+ vec3 tone=mix(leftStone,rightStone,across);
+ float rockDetail=.90+.09*speck+.045*sin(mossPoint.x*32.+mossPoint.z*14.+mossPoint.y*9.);
+ vec3 stone=mix(diffuseColor.rgb*tone*rockDetail,mossColor,cover*.94);
+ vec2 woodUv=joineryUv*tableUvTransform.xy+tableUvTransform.zw;
+ vec3 tableColor=tableTint*mix(vec3(1.),texture2D(tableTexture,woodUv).rgb,tableWood);
+ diffuseColor.rgb=mix(tableColor,stone,stoneFade);`);
+ };
+ return fade;
+}
+function block(position,scale,color,isWall){
+ const material=new T.MeshStandardMaterial({color:color.clone().lerp(new T.Color(0xffffff),.965),roughness:.98});
+ material.map=stoneColor;
+ material.bumpMap=stoneRelief;
+ material.bumpScale=rockBump;
+ const surfaceFade=rockSurface(material,blocks.length,isWall);
+ const mesh=new T.Mesh(rockShapes[blocks.length%rockShapes.length],material);
+ mesh.castShadow=true;
+ mesh.receiveShadow=true;
+ mesh.position.copy(position);
+ mesh.scale.set(...scale);
+ if(isWall)mesh.rotation.set((random()-.5)*.10,(random()-.5)*.50,(random()-.5)*.14);
+ scene.add(mesh);
+ blocks.push({
+  mesh,mazeGeometry:mesh.geometry,surfaceFade,position:position.clone(),scale:mesh.scale.clone(),orientation:mesh.quaternion.clone(),color:material.color.clone(),
+  scatter:new T.Vector3((random()-.5)*14,1.7+random()*5.6,(random()-.5)*12),
+  spin:new T.Vector3(random()*7,random()*7,random()*7),delay:random()*.24
+ });
+}
+for(let z=0;z<size;z++){
+ for(let x=0;x<size;x++){
+  if(grid[z][x]){
+   const h=.68+random()*.91;
+   const color=new T.Color().setHSL(.59+random()*.035,.13+random()*.12,.45+random()*.14);
+   const embed=.32;
+   const position=mazePosition(x,z,h/2-.035-embed/2);
+   position.x+=(random()-.5)*.14;
+   position.z+=(random()-.5)*.14;
+   block(position,[cell*(.94+random()*.26),h+embed,cell*(.91+random()*.29)],color,true);
+  }
+ }
+}
+const floorSpan=size*cell/5;
+for(let z=0;z<5;z++){
+ for(let x=0;x<5;x++){
+  const edgeX=x===0?-1:x===4?1:0;
+  const edgeZ=z===0?-1:z===4?1:0;
+  const rim=edgeX!==0||edgeZ!==0;
+  const inset=.38+random()*.10;
+  const jitter=.08;
+  const px=(x-2)*floorSpan-edgeX*inset+(random()-.5)*jitter;
+  const pz=(z-2)*floorSpan-edgeZ*inset+(random()-.5)*jitter;
+  const thickness=rim?.46+random()*.38:.29+random()*.16;
+  const width=floorSpan*(edgeX!==0?1.10+random()*.06:1.34+random()*.14);
+  const depth=floorSpan*(edgeZ!==0?1.10+random()*.06:1.34+random()*.14);
+  const color=new T.Color().setHSL(.59+random()*.037,.13+random()*.10,.45+random()*.12);
+  const surface=-.044+(random()-.5)*.044;
+  block(new T.Vector3(px,surface-thickness*.5,pz),[width,thickness,depth],color,false);
+ }
+}
+const ruins=new T.Group();
+scene.add(ruins);
+const creeper=new T.MeshStandardMaterial({color:0x326B5D,roughness:1});
+const leaves=[0x5BA45C,0x75B95A,0x4C987B].map(color=>new T.MeshStandardMaterial({color,roughness:.94}));
+const foliage=new T.SphereGeometry(1,8,5);
+const ivyMaterial=new T.MeshStandardMaterial({color:0x4C987B,roughness:.92,side:T.DoubleSide});
+const ivyOutline=new T.Shape();
+ivyOutline.moveTo(0,-.031);
+ivyOutline.lineTo(-.023,-.010);
+ivyOutline.lineTo(-.041,.012);
+ivyOutline.lineTo(-.016,.009);
+ivyOutline.lineTo(0,.040);
+ivyOutline.lineTo(.016,.009);
+ivyOutline.lineTo(.041,.012);
+ivyOutline.lineTo(.023,-.010);
+ivyOutline.closePath();
+const ivyLeaf=new T.ShapeGeometry(ivyOutline);
+const mossTones=[0x4C987B,0x5BA45C,0x326B5D].map(color=>new T.MeshStandardMaterial({color,roughness:1}));
+const darkStone=new T.MeshStandardMaterial({color:0x303847,roughness:.99});
+const metalTorch=new T.MeshStandardMaterial({color:0x574338,roughness:.7,metalness:.55});
+const creatureGreens=[0x395a3a,0x597746,0x72854b,0x344d38].map(color=>new T.MeshStandardMaterial({color,roughness:.74}));
+const eyeWhite=new T.MeshStandardMaterial({color:0xe7ce83,emissive:0x322510,roughness:.55});
+const pupil=new T.MeshStandardMaterial({color:0x151514,roughness:.44});
+const creatures=[],torches=[];
+function oval(parent,material,x,y,z,sx,sy,sz){
+ const mesh=new T.Mesh(foliage,material);
+ mesh.position.set(x,y,z);
+ mesh.scale.set(sx,sy,sz);
+ parent.add(mesh);
+ return mesh;
+}
+function wallLine(parent,points,radius,material){
+ const path=new T.CatmullRomCurve3(points.map(p=>new T.Vector3(...p)));
+ parent.add(new T.Mesh(new T.TubeGeometry(path,14,radius,5,false),material));
+}
+const wallFaces=[];
+const crownRay=new T.Raycaster(new T.Vector3(),new T.Vector3(0,-1,0));
+let wallIndex=0;
+for(let z=0;z<size;z++)for(let x=0;x<size;x++){
+ if(!grid[z][x])continue;
+ const wall=blocks[wallIndex++];
+ const h=wall.position.y+wall.scale.y*.5;
+ const open=steps.filter(([dx,dz])=>grid[z+dz]?.[x+dx]===false);
+ if(!open.length)continue;
+ // Favor wall faces seen from the overhead entrance view.
+ const [dx,dz]=open.find(([,dz])=>dz===1)||open[0];
+ const face=new T.Group();
+ face.position.set(wall.position.x,0,wall.position.z);
+ face.position.x+=dx*wall.scale.x*.48;
+ face.position.z+=dz*wall.scale.z*.48;
+ face.rotation.y=Math.atan2(dx,dz);
+ ruins.add(face);
+ const wallFace={face,h,wallMesh:wall.mesh,plants:[]};
+ wallFaces.push(wallFace);
+ const plantCover=.49+.33*Math.sin(x*.72+z*.58)+.12*Math.cos(x*1.7-z*.87);
+ const strandCount=plantCover>.65?5:plantCover>.37?3:plantCover>.16?2:1;
+ for(let strand=0;strand<strandCount;strand++){
+  const start=-.31+strand*.62/Math.max(1,strandCount-1)+(random()-.5)*.09;
+  const climb=strand%3===2;
+  const length=.31+random()*(.39+plantCover*.66);
+  const points=Array.from({length:9},(_,i)=>{
+   const t=i/8;
+   return [start+.075*Math.sin(t*5.7+wallIndex)+t*.085*Math.sin(strand),
+    climb?.06+t*length:h+.067-t*length,.023+.051*Math.sin(t*Math.PI)*(.5+random()*.5)];
+  });
+  wallLine(face,points,.008+random()*.004,creeper);
+  points.forEach(([lx,ly,lz],i)=>{
+   const side=i%2?1:-1;
+   const width=.019+random()*.021;
+   const leaf=oval(face,leaves[(i+strand)%3],lx+side*.024,ly-.016,lz+.012,width,.016+random()*.014,.006);
+   leaf.rotation.set(.2+random()*.55,side*.4,-side*(.53+random()*.44));
+   if(i%3===1&&plantCover>.55){
+    const tip=[lx-side*.093,ly-.045,lz+.034];
+    wallLine(face,[[lx,ly,lz],[lx-side*.047,ly-.014,lz+.021],tip],.0045,creeper);
+    oval(face,leaves[(i+1)%3],...tip,.028,.021,.007).rotation.z=side*.48;
+   }
+  });
+ }
+ if(plantCover>.56){
+  for(let j=0;j<6;j++){
+   const x=(random()-.5)*.68,z=.006+random()*.12;
+   const top=j<3;
+   const width=.024+random()*.050;
+   oval(face,leaves[j%3],x,top?h+.074:.025,z,width,.012+random()*.014,.037+random()*.028);
+  }
+ }
+ if(plantCover>.58){
+  wall.mesh.updateMatrixWorld(true);
+  face.updateMatrixWorld(true);
+  for(let vine=0;vine<2;vine++){
+   const points=[];
+   for(let i=0;i<=10;i++){
+    const t=i/10;
+    const lateral=(vine===0?-.11:.12)+.067*Math.sin(t*5+wallIndex+vine);
+    const depth=.065+t*.49;
+    const wx=face.position.x+dz*lateral-dx*depth;
+    const wz=face.position.z-dx*lateral-dz*depth;
+    crownRay.ray.origin.set(wx,h+1,wz);
+    const hit=crownRay.intersectObject(wall.mesh)[0];
+    if(!hit)continue;
+    const local=face.worldToLocal(hit.point.clone());
+    points.push([local.x,local.y+.012,local.z]);
+    const side=i%2===0?1:-1;
+    const leaf=oval(face,leaves[(i+vine)%leaves.length],local.x+side*.017,local.y+.023,local.z,.029+random()*.016,.010,.023);
+    leaf.rotation.y=side*(.43+random()*.7);
+    if(i%3===1)oval(face,leaves[0],local.x,local.y+.011,local.z,.049,.009,.037);
+   }
+   if(points.length>2){
+    const [x,y,z]=points[0];
+    points.unshift([x,y-.16,.026],[x,y-.066,.028]);
+    wallLine(face,points,.008,creeper);
+   }
+  }
+ }
+ if(plantCover>.28){
+  const clusterX=.18*Math.sin(wallIndex*1.83);
+  const clusterY=h*(.34+.22*Math.cos(wallIndex*2.1));
+  for(let k=0;k<9;k++){
+   const angle=k*2.39996;
+   const radius=.044+.106*Math.sqrt(k/9);
+   const ivy=new T.Mesh(ivyLeaf,ivyMaterial);
+   ivy.position.set(clusterX+Math.cos(angle)*radius,clusterY+Math.sin(angle)*radius,.055+.014*(k%3));
+   ivy.rotation.z=angle;
+   ivy.scale.setScalar(.64+.44*random());
+   face.add(ivy);
+  }
+ }
+ if(plantCover>.40){
+  const crowns=plantCover>.65?3:1;
+  for(let crown=0;crown<crowns;crown++){
+   const rootX=(crown-(crowns-1)*.5)*.21+(random()-.5)*.13;
+   const rootY=h*(.44+random()*.34);
+   for(let f=0;f<5;f++){
+    const spread=(f-2)*(.063+random()*.030);
+    const length=.23+random()*.42;
+    const points=Array.from({length:10},(_,i)=>{
+     const t=i/9;
+     return [rootX+spread*t,rootY+length*(.42*t-1.36*t*t),.051+.12*Math.sin(t*Math.PI*.75)];
+    });
+    wallLine(face,points,.0035,creeper);
+    points.slice(1,-1).forEach(([x,y,z],i)=>{
+     const width=(.022+.019*Math.sin((i+1)*Math.PI/10))*(1-i*.067);
+     for(const side of [-1,1]){
+      const leaf=oval(face,leaves[(crown+f)%leaves.length],x+side*width*.66,y+.007,z,width,.0065,.0045);
+      leaf.rotation.z=side*(.38+i*.032)+spread;
+     }
+    });
+   }
+  }
+ }
+ if(plantCover>.32){
+  for(let k=0;k<10;k++){
+   const x=(random()-.5)*.65;
+   const y=(k%3===0?h*.44:0)+.018+random()*.065;
+   oval(face,mossTones[k%mossTones.length],x,y,.022+random()*.038,.028+random()*.041,.013+random()*.016,.013);
+  }
+ }
+ wallFace.plants=face.children.slice();
+ if(wallIndex%4===0){
+  wallLine(face,[[.12,h*.85,.008],[.07,h*.68,.013],[.15,h*.54,.009],[.095,h*.44,.01]],.008,darkStone);
+  wallLine(face,[[.07,h*.68,.011],[-.015,h*.60,.012],[-.072,h*.62,.009]],.005,darkStone);
+ }
+ if(wallIndex%7===0){
+  for(let j=0;j<3;j++)oval(face,darkStone,-.19+j*.056,h*.28+(j%2)*.043,.014,.019,.007,.006);
+ }
+}
+const torchWood=new T.CylinderGeometry(.036,.024,.27,10);
+const flameShape=new T.ConeGeometry(.10,.33,10);
+const outerFlame=new T.MeshBasicMaterial({color:0xf99439,transparent:true,opacity:.75,depthWrite:false,blending:T.AdditiveBlending});
+const coreFlame=new T.MeshBasicMaterial({color:0xffe6a4,transparent:true,opacity:.95,depthWrite:false,blending:T.AdditiveBlending});
+for(let i=0;i<wallFaces.length;i++){
+ const {face,h,wallMesh,plants}=wallFaces[i];
+ if(i%8===1){
+  const bracket=new T.Mesh(torchWood,metalTorch);
+  bracket.position.set(.13,h*.64,.11);
+  bracket.rotation.x=.53;
+  face.add(bracket);
+  oval(face,metalTorch,.13,h*.65,.025,.069,.072,.027);
+  const flame=new T.Group();
+  flame.position.set(.13,h*.64+.21,.17);
+  const outer=new T.Mesh(flameShape,outerFlame),inner=new T.Mesh(flameShape,coreFlame);
+  outer.position.y=.06;
+  inner.position.y=.02;
+  inner.scale.set(.54,.70,.54);
+  flame.add(outer,inner);
+  face.add(flame);
+  const light=new T.PointLight(0xff913d,2.6,2.65,1.8);
+  light.position.set(.13,h*.64+.21,.24);
+  face.add(light);
+  torches.push({face,h,wallMesh,plants,flame,light,phase:i});
+ }
+ if(i%9===3){
+  const count=[2,5,3,4,1][Math.floor(i/9)%5];
+  for(let j=0;j<count;j++){
+   const segments=[];
+   const length=.28+random()*.64;
+   const width=.028+random()*.035;
+   const color=creatureGreens[(i+j)%creatureGreens.length];
+   for(let part=0;part<9;part++)segments.push(oval(face,color,0,0,0,width,length*.10,width*.76));
+   const head=oval(face,color,0,0,0,width*1.40,width*1.51,width*1.15);
+   const eye=oval(face,eyeWhite,0,0,0,width*.73,width*.76,width*.39);
+   const iris=oval(face,pupil,0,0,0,width*.31,width*.49,width*.15);
+   const x=(j-(count-1)/2)*(.51/Math.max(1,count-1));
+   const bodyFire=new T.Group();
+   for(let k=0;k<3;k++){
+    const tongue=new T.Group();
+    tongue.add(new T.Mesh(flameShape,outerFlame));
+    const inner=new T.Mesh(flameShape,coreFlame);
+    inner.position.y=-.035;
+    inner.scale.set(.51,.65,.51);
+    tongue.add(inner);
+    bodyFire.add(tongue);
+   }
+   bodyFire.visible=false;
+   face.add(bodyFire);
+   creatures.push({face,segments,head,eye,iris,bodyFire,x,y:h*.13,width,length,
+    phase:i+j*.92,burn:0,touching:false});
+  }
+ }
+}
+const creatureContact=new T.Vector3();
+function animateRuins(time,dt){
+ for(const {flame,light,phase} of torches){
+  if(!flame.visible)continue;
+  const flicker=Math.sin(time*17+phase)*.13+Math.sin(time*29-phase)*.07;
+  flame.scale.set(1-flicker*.7,1+flicker,1-flicker*.7);
+  flame.rotation.z=.14*Math.sin(time*9+phase);
+  light.intensity=3.35+flicker*6.8;
+ }
+ for(const c of creatures){
+  c.face.worldToLocal(creatureContact.copy(fireball.position));
+  const contactX=creatureContact.x-c.x;
+  const contactZ=creatureContact.z-.10;
+  const touching=creatureContact.z>.015&&contactX*contactX+contactZ*contactZ<(fireRadius+c.width+.042)**2;
+  if(touching&&!c.touching&&c.burn<=0)c.burn=2.6;
+  c.touching=touching;
+  c.burn=Math.max(0,c.burn-dt);
+  const burning=c.burn>0;
+  c.phase+=dt*(burning?12.6:2.75);
+  const sway=t=>Math.sin(c.phase-t*4.3)*(.018+t*(burning?.112:.075));
+  c.bodyFire.visible=burning;
+  if(burning){
+   const fade=T.MathUtils.smoothstep(c.burn,0,.48);
+   c.bodyFire.children.forEach((tongue,k)=>{
+    const t=.27+k*.30;
+    const flicker=.58+.19*Math.sin(time*22+k*3.1)+.13*Math.cos(time*34-k);
+    tongue.position.set(c.x+sway(t)+Math.sin(k*4)*.025,c.y+c.length*t+.04,.12+t*.042);
+    tongue.scale.set(fade*.55,flicker*fade,fade*.55);
+    tongue.rotation.z=.32*Math.sin(c.phase+k);
+   });
+  }
+  c.segments.forEach((segment,i)=>{
+   const t=i/c.segments.length;
+   segment.position.set(c.x+sway(t),c.y+c.length*t,.067+t*.052);
+   segment.rotation.z=-.32*Math.cos(c.phase-t*4.3);
+   const thickness=1-.28*Math.sin(t*Math.PI);
+   segment.scale.set(c.width*thickness,c.length*.105,c.width*.76);
+  });
+  const x=c.x+sway(1),y=c.y+c.length,z=.13;
+  c.head.position.set(x,y,z);
+  c.eye.position.set(x,y+.006,z+c.width*.97);
+  c.iris.position.set(x+c.width*.17*Math.sin(time*1.8+c.phase),y+.006,z+c.width*1.31);
+ }
+}
+const board=new T.Group();
+const boardAngle=-Math.PI*.35;
+board.rotation.x=boardAngle;
+scene.add(board);
+const boardTargets=[];
+const frameWoodColor=0xe7bc91;
+const troughWoodColor=0xe0b07f;
+function makeWoodTexture(){
+ const tile=document.createElement('canvas');
+ tile.width=512;tile.height=384;
+ const ink=tile.getContext('2d');
+ const image=ink.createImageData(tile.width,tile.height);
+ for(let y=0;y<tile.height;y++)for(let x=0;x<tile.width;x++){
+  const u=x/(tile.width-1),v=y/(tile.height-1);
+  const bend=4.3*Math.sin(v*4.8+u*5.2)+2.2*Math.sin(v*12.1+u*15);
+  const fiber=x+bend;
+  const narrow=Math.pow(.5+.5*Math.sin(fiber*.95+1.4*Math.cos(fiber*.16)),6);
+  const wide=Math.sin(fiber*.18+Math.sin(v*4.4)*.6);
+  const knotX=x-348,knotY=(y-184)*.37;
+  const knotDistance=Math.hypot(knotX,knotY);
+  const knot=Math.exp(-knotDistance/16)*(.5+.5*Math.sin(knotDistance*1.22));
+  const noise=((Math.imul(x+37,83492791)^Math.imul(y+13,19349663))>>>25)/127;
+  const shade=wide*2.4-narrow*6.6-knot*13+(noise-.5)*3.7;
+  const index=(y*tile.width+x)*4;
+  image.data.set([248-u*12+shade,224-u*14+shade,190-u*13+shade,255],index);
+ }
+ ink.putImageData(image,0,0);
+ const texture=new T.CanvasTexture(tile);
+ texture.colorSpace=T.SRGBColorSpace;
+ return texture;
+}
+const honeyTexture=makeWoodTexture();
+function target(x,y,z,w,h,d,color,kind){
+ boardTargets.push({x,y,z,w,h,d,color,kind});
+}
+// The maze blocks become the board, wooden frame, pegs and scoring dividers.
+for(let row=0;row<5;row++)for(let col=0;col<5;col++){
+ target((col-2)*1.10,(row-2)*1.48,-.19,1.097,1.477,.25,0xffffff,'playfield');
+}
+for(const x of [-2.85,2.85])for(let i=0;i<6;i++)target(x,(i-2.5)*1.24,.09,.34,1.242,.48,frameWoodColor);
+for(const y of [-3.80,3.80])for(let i=0;i<5;i++)target((i-2)*1.16,y,.09,1.162,.32,.48,frameWoodColor);
+const pegs=[];
+for(let row=0;row<6;row++){
+ const cols=row%2?7:6;
+ for(let col=0;col<cols;col++){
+  const x=(col-(cols-1)/2)*.73-(row%2)*.16,y=2.33-row*.61;
+  pegs.push({x,y,r:.049});
+  target(x,y,.027,.098,.098,.145,0xb59a70,'pin');
+ }
+}
+const binLetters=[...'SJHINDFWA'];
+const binCount=binLetters.length,binLeft=-2.67,binRight=2.20,binWidth=(binRight-binLeft)/binCount;
+for(let i=1;i<binCount;i++)target(binLeft+i*binWidth,-2.18,.07,.079,1.04,.25,troughWoodColor);
+for(let i=0;i<3;i++)target(2.27,-2.31+i*1.805,.205,.14,1.809,.51,frameWoodColor);
+for(let i=0;boardTargets.length<blocks.length;i++){
+ const col=i%10,row=Math.floor(i/10);
+ target((col-4.5)*.54,3.23-row*.22,.016,.46,.16,.09,i%2?0x376f79:0x9e5836);
+}
+if(boardTargets.length!==blocks.length)throw Error('The two layouts must use the same number of blocks');
+board.updateMatrixWorld();
+const boardQuaternion=board.quaternion.clone();
+const tableRollAxis=new T.Vector3(0,0,1);
+const tableRoll=new T.Quaternion();
+const joineryGeometry=new T.BoxGeometry(1,1,1);
+const pinProfile=[[0,-.5],[.23,-.5],[.24,.28],[.49,.32],[.50,.43],[.37,.50],[0,.50]];
+const pinGeometry=new T.LatheGeometry(pinProfile.map(([r,y])=>new T.Vector2(r,y)),20);
+pinGeometry.rotateX(Math.PI/2);
+blocks.forEach((block,i)=>{
+ const t=boardTargets[i];
+ block.target=board.localToWorld(new T.Vector3(t.x,t.y,t.z));
+ block.targetScale=new T.Vector3(t.w,t.h,t.d);
+
+ block.tableGeometry=t.kind==='pin'?pinGeometry:joineryGeometry;
+ block.tableKind=t.kind;
+ const finish=block.mesh.material.userData.tableSurface;
+ finish.tint.value.set(t.color);
+ finish.texture.value=honeyTexture;
+ finish.wood.value=t.kind==='pin'?0:1;
+ if(t.kind==='playfield')finish.uv.value.set(t.w/5.5,t.h/7.4,(t.x-t.w/2+2.75)/5.5,(t.y-t.h/2+3.7)/7.4);
+});
+
+const letterRay=new T.Raycaster();
+const wallMeshes=blocks.slice(0,-25).map(block=>block.mesh);
+const floorMeshes=blocks.slice(-25).map(block=>block.mesh);
+scene.updateMatrixWorld(true);
+function stoneLetter(letter,origin,direction,surfaces){
+ letterRay.set(origin,direction);
+ const hit=letterRay.intersectObjects(surfaces)[0];
+ if(!hit)throw Error('No stone surface for '+letter);
+ const textureCanvas=document.createElement('canvas');
+ textureCanvas.width=textureCanvas.height=128;
+ const ink=textureCanvas.getContext('2d');
+ ink.font='bold 94px Georgia';
+ ink.textAlign='center';
+ ink.textBaseline='middle';
+ ink.lineWidth=5;
+ ink.strokeStyle='#292b30';
+ ink.strokeText(letter,64,67);
+ const pigment=ink.createLinearGradient(20,22,101,110);
+ pigment.addColorStop(0,'#c8bea0');
+ pigment.addColorStop(.54,'#a69a7e');
+ pigment.addColorStop(1,'#d2c6a5');
+ ink.fillStyle=pigment;
+ ink.fillText(letter,64,66);
+
+ let wearSeed=letter.charCodeAt(0)*541;
+ function wear(){
+  wearSeed=(Math.imul(wearSeed,1664525)+1013904223)>>>0;
+  return wearSeed/4294967296;
+ }
+ ink.globalCompositeOperation='destination-out';
+ for(let i=0;i<57;i++){
+  const x=23+wear()*82,y=23+wear()*83;
+  const width=.6+wear()*3.6;
+  ink.beginPath();
+  ink.moveTo(x-width,y);
+  ink.lineTo(x+width*.6,y-width*.82);
+  ink.lineTo(x+width,y+width*.62);
+  ink.lineTo(x,y+width*.75);
+  ink.fill();
+ }
+ for(let i=0;i<3;i++){
+  const x=34+wear()*53,y=36+wear()*52;
+  ink.lineWidth=1.2+wear();
+  ink.beginPath();
+  ink.moveTo(x-14,y-4);
+  ink.lineTo(x-5,y);
+  ink.lineTo(x+1,y-4);
+  ink.lineTo(x+7,y+2);
+  ink.lineTo(x+15,y+4);
+  ink.stroke();
+ }
+ ink.globalCompositeOperation='source-over';
+ const texture=new T.CanvasTexture(textureCanvas);
+ texture.colorSpace=T.SRGBColorSpace;
+ const material=new T.MeshBasicMaterial({map:texture,transparent:true,alphaTest:.18,side:T.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2});
+ const glyph=new T.Mesh(new T.PlaneGeometry(.44,.44),material);
+ const normal=direction.clone().negate();
+ glyph.position.copy(hit.point).addScaledVector(normal,.036);
+ if(normal.y)glyph.rotation.x=-Math.PI/2;
+ else glyph.rotation.y=Math.atan2(normal.x,normal.z);
+ ruins.add(glyph);
+ return glyph;
+}
+stoneLetter('L',new T.Vector3(-2.34,.34,7),new T.Vector3(0,0,-1),wallMeshes);
+stoneLetter('A',new T.Vector3(7,.34,-1.56),new T.Vector3(-1,0,0),wallMeshes);
+const extinguishedTorch=torches[0];
+extinguishedTorch.flame.visible=false;
+extinguishedTorch.light.intensity=0;
+const torchFace=extinguishedTorch.face;
+const pHeight=extinguishedTorch.h*.64-.28;
+const pClearance=new T.Box3(new T.Vector3(-.09,pHeight-.22,-.1),new T.Vector3(.35,pHeight+.22,.25));
+const plantBounds=new T.Box3();
+for(const plant of extinguishedTorch.plants){
+ plant.geometry.computeBoundingBox();
+ plant.updateMatrix();
+ plantBounds.copy(plant.geometry.boundingBox).applyMatrix4(plant.matrix);
+ if(plantBounds.intersectsBox(pClearance))torchFace.remove(plant);
+}
+const beneathTorch=torchFace.localToWorld(new T.Vector3(.13,pHeight,.78));
+const towardWall=new T.Vector3(0,0,-1).applyQuaternion(torchFace.quaternion);
+const hiddenP=stoneLetter('P',beneathTorch,towardWall,[extinguishedTorch.wallMesh]);
+const ignitionPoint=torchFace.localToWorld(new T.Vector3(.13,0,.23));
+const torchOutward=towardWall.clone().negate();
+const clueBracket=new T.Mesh(
+ new T.TorusGeometry(.125,.015,8,32),
+ new T.MeshStandardMaterial({color:0xd6a25d,metalness:.36,roughness:.52,emissive:0xb76924,emissiveIntensity:.45})
+);
+clueBracket.position.set(.13,extinguishedTorch.h*.64,.060);
+torchFace.add(clueBracket);
+const clueSparks=new T.Group();
+const clueSparkShape=new T.SphereGeometry(.024,10,7);
+const clueSparkMaterial=new T.MeshBasicMaterial({color:0xffc267,transparent:true,opacity:0,depthWrite:false});
+for(let i=0;i<7;i++)clueSparks.add(new T.Mesh(clueSparkShape,clueSparkMaterial));
+clueSparks.visible=false;
+ruins.add(clueSparks);
+const wickPoint=extinguishedTorch.flame.getWorldPosition(new T.Vector3());
+let pReveal=0;
+ clueSparks.visible=false;
+ clueBracket.material.emissiveIntensity=.45;
+function resetHiddenP(){
+ pReveal=0;
+ clueSparks.visible=false;
+ clueBracket.material.emissiveIntensity=.45;
+ hiddenP.visible=false;
+ hiddenP.material.opacity=0;
+ extinguishedTorch.flame.visible=false;
+ extinguishedTorch.light.intensity=0;
+}
+function updateTorch(time){
+ if(!extinguishedTorch.flame.visible){
+  const x=fireball.position.x-ignitionPoint.x;
+  const z=fireball.position.z-ignitionPoint.z;
+  const onCorridorSide=x*torchOutward.x+z*torchOutward.z>=-.10;
+  const distance=Math.hypot(x,z);
+  const nearby=onCorridorSide&&distance<1.65;
+  clueBracket.material.emissiveIntensity=.38+.23*Math.sin(time*4.8)+(nearby?.55:0);
+  clueSparks.visible=nearby;
+  if(nearby){
+   clueSparkMaterial.opacity=.26+.54*(1-T.MathUtils.smoothstep(distance,.72,1.65));
+   clueSparks.children.forEach((spark,i)=>{
+    const t=(time*1.35+i/7)%1;
+    spark.position.lerpVectors(fireball.position,wickPoint,t);
+    spark.position.y+=.16*Math.sin(t*Math.PI);
+    spark.scale.setScalar(.45+.63*Math.sin(t*Math.PI));
+   });
+  }
+  const ignitionRadius=.72;
+  if(!onCorridorSide||x*x+z*z>ignitionRadius**2)return;
+  extinguishedTorch.flame.visible=true;
+  extinguishedTorch.light.intensity=3.35;
+
+  clueSparks.visible=false;
+  clueBracket.material.emissiveIntensity=.20;
+ }
+}
+function updateHiddenP(dt,time){
+ updateTorch(time);
+ if(!extinguishedTorch.flame.visible&&!critters.every(critter=>!critter.alive))return;
+ hiddenP.visible=true;
+ pReveal=Math.min(1,pReveal+dt*2.4);
+ hiddenP.material.opacity=T.MathUtils.smoothstep(pReveal,0,1);
+}
+for(const [letter,[x,z]] of [['I',[1,1]],['S',[9,9]]]){
+ stoneLetter(letter,mazePosition(x,z,4),new T.Vector3(0,-1,0),floorMeshes);
+}
+const fireRadius=.155;
+const fireStart=mazePosition(1,1);
+const fireTime={value:0};
+const fireSkin=new T.ShaderMaterial({
+ uniforms:{fireTime},
+ vertexShader:`
+ varying vec3 firePoint,fireNormal,fireView;
+ void main(){
+  firePoint=position;
+  fireNormal=normalize(normalMatrix*normal);
+  vec4 point=modelViewMatrix*vec4(position,1.);
+  fireView=normalize(-point.xyz);
+  gl_Position=projectionMatrix*point;
+ }`,
+ fragmentShader:`
+ uniform float fireTime;
+ varying vec3 firePoint,fireNormal,fireView;
+ void main(){
+  float facing=abs(dot(normalize(fireNormal),normalize(fireView)));
+  vec3 color=mix(vec3(1.,.45,.065),vec3(1.,.93,.51),smoothstep(0.,.85,facing));
+  gl_FragColor=vec4(color,1.);
+  #include <colorspace_fragment>
+ }`
+});
+const fireball=new T.Group();
+const fireCore=new T.Mesh(new T.SphereGeometry(fireRadius,32,20),fireSkin);
+fireball.add(fireCore);
+const flameEnvelope=new T.ShaderMaterial({
+ uniforms:{fireTime},
+ transparent:true,depthWrite:false,blending:T.AdditiveBlending,
+ vertexShader:`
+ uniform float fireTime;
+ varying vec3 flameDirection,flameNormal,flameView;
+ void main(){
+  vec3 d=normalize(position);
+  float tongues=pow(.5+.5*sin(d.x*19.+d.y*15.+sin(d.z*12.+fireTime*5.)*1.8-fireTime*4.),4.);
+  float flicker=.5+.5*sin(d.z*21.-d.x*8.+fireTime*8.);
+  float broad=.5+.5*sin(d.x*6.4+d.z*5.8+sin(d.y*5.2+fireTime*1.7));
+  float longTips=pow(.5+.5*sin(d.y*9.+d.z*7.-fireTime*3.1+sin(d.x*8.)*2.),6.);
+  float rise=(.032+.088*broad)*tongues+.084*longTips+.018*flicker;
+  vec3 displaced=position+d*rise;
+  vec4 view=modelViewMatrix*vec4(displaced,1.);
+  flameDirection=d;
+  flameNormal=normalize(normalMatrix*normal);
+  flameView=normalize(-view.xyz);
+  gl_Position=projectionMatrix*view;
+ }`,
+ fragmentShader:`
+ uniform float fireTime;
+ varying vec3 flameDirection,flameNormal,flameView;
+ void main(){
+  vec3 d=normalize(flameDirection);
+  float rim=1.-abs(dot(normalize(flameNormal),normalize(flameView)));
+  float flame=.5+.5*sin(d.x*23.+d.y*18.+2.*sin(d.z*13.+fireTime*6.)-fireTime*5.);
+  float tips=smoothstep(.34,.89,flame);
+  vec3 heat=mix(vec3(1.,.15,.018),vec3(1.,.75,.25),tips);
+  gl_FragColor=vec4(heat,(.17+.68*tips)*smoothstep(.15,.85,rim));
+  #include <colorspace_fragment>
+ }`
+});
+fireball.add(new T.Mesh(new T.SphereGeometry(fireRadius*1.17,52,36),flameEnvelope));
+const haloCanvas=document.createElement('canvas');
+haloCanvas.width=haloCanvas.height=64;
+const haloInk=haloCanvas.getContext('2d');
+const haloGradient=haloInk.createRadialGradient(32,32,1,32,32,32);
+haloGradient.addColorStop(0,'rgba(255,194,76,.75)');
+haloGradient.addColorStop(.32,'rgba(255,136,34,.44)');
+haloGradient.addColorStop(1,'rgba(255,89,16,0)');
+haloInk.fillStyle=haloGradient;
+haloInk.fillRect(0,0,64,64);
+const fireHalo=new T.Sprite(new T.SpriteMaterial({
+ map:new T.CanvasTexture(haloCanvas),transparent:true,blending:T.AdditiveBlending,depthWrite:false
+}));
+fireHalo.scale.setScalar(.77);
+fireball.add(fireHalo);
+const fireLight=new T.PointLight(0xff8e30,1.4,2.1,1.6);
+fireLight.position.y=.09;
+fireball.add(fireLight);
+scene.add(fireball);
+const fireVelocity=new T.Vector2();
+const rollAxis=new T.Vector3();
+const floorRay=new T.Raycaster();
+const downward=new T.Vector3(0,-1,0);
+const rayOrigin=new T.Vector3();
+function canRollAt(x,z){
+ const gx=x/cell+5,gz=z/cell+5,r=fireRadius/cell;
+ for(let row=Math.round(gz-r);row<=Math.round(gz+r);row++){
+  for(let col=Math.round(gx-r);col<=Math.round(gx+r);col++){
+   if(grid[row]?.[col]===false)continue;
+   const dx=Math.max(0,Math.abs(gx-col)-.5),dz=Math.max(0,Math.abs(gz-row)-.5);
+   if(dx*dx+dz*dz<r*r)return false;
+  }
+ }
+ return true;
+}
+function settleFireball(){
+ rayOrigin.set(fireball.position.x,3,fireball.position.z);
+ floorRay.set(rayOrigin,downward);
+ const hit=floorRay.intersectObjects(floorMeshes)[0];
+ fireball.position.y=(hit?.point.y??0)+fireRadius;
+}
+function updateFireball(dt,time){
+ fireTime.value=time;
+ fireLight.intensity=1.2+.36*Math.sin(time*7.4);
+ fireHalo.material.opacity=.70+.15*Math.sin(time*5.8);
+ const px=fireball.position.x,pz=fireball.position.z;
+ const gravity=5.8/Math.max(1,camera.position.length());
+ fireVelocity.x+=camera.position.x*gravity*dt;
+ fireVelocity.y+=camera.position.z*gravity*dt;
+ fireVelocity.multiplyScalar(Math.exp(-2.2*dt)).clampLength(0,2.1);
+ const steps=Math.max(1,Math.ceil(dt*120));
+ for(let i=0;i<steps;i++){
+  const x=fireball.position.x+fireVelocity.x*dt/steps;
+  if(canRollAt(x,fireball.position.z))fireball.position.x=x;
+  else fireVelocity.x*=-.22;
+  const z=fireball.position.z+fireVelocity.y*dt/steps;
+  if(canRollAt(fireball.position.x,z))fireball.position.z=z;
+  else fireVelocity.y*=-.22;
+ }
+ const dx=fireball.position.x-px,dz=fireball.position.z-pz;
+ const distance=Math.hypot(dx,dz);
+ if(distance>.00001){
+  rollAxis.set(dz,0,-dx).normalize();
+  fireCore.rotateOnWorldAxis(rollAxis,distance/fireRadius);
+  settleFireball();
+ }
+}
+const critterColors=[0x5ba45c,0x4c987b,0x75b95a].map(color=>new T.MeshStandardMaterial({color,roughness:.84}));
+const critterCells=[[3,1],[7,1],[3,5],[7,5],[5,7],[9,9]];
+const critters=critterCells.map(([x,z],index)=>{
+ const model=new T.Group();
+ const color=critterColors[index%critterColors.length];
+ const body=oval(model,color,0,.15,0,.125,.125,.106);
+ for(const side of [-1,1]){
+  oval(model,color,side*.093,.045,.02,.063,.046,.065);
+  const ear=oval(model,color,side*.074,.241,-.015,.036,.069,.035);
+  ear.rotation.z=-side*.29;
+ }
+ oval(model,eyeWhite,0,.172,.090,.052,.057,.025);
+ oval(model,pupil,0,.172,.113,.022,.031,.010);
+ ruins.add(model);
+ return {model,body,startX:x,startZ:z,x,z,position:mazePosition(x,z),target:mazePosition(x,z),alarm:0,alive:true,index};
+});
+const critterGroundRay=new T.Raycaster();
+const critterRayOrigin=new T.Vector3();
+const memoryCard=new T.Group();
+const cardShell=new T.MeshStandardMaterial({color:0x555d6d,roughness:.67});
+const cardInset=new T.MeshStandardMaterial({color:0x2d3441,roughness:.79});
+const cardMetal=new T.MeshStandardMaterial({color:0xbd9e5b,metalness:.48,roughness:.43});
+function memoryPart(material,x,y,z,w,h,d){
+ const mesh=new T.Mesh(blockShape,material);
+ mesh.position.set(x,y,z);
+ mesh.scale.set(w,h,d);
+ memoryCard.add(mesh);
+}
+memoryPart(cardShell,0,0,0,.29,.055,.205);
+memoryPart(cardInset,0,.029,-.025,.22,.009,.10);
+for(let i=0;i<7;i++)memoryPart(cardMetal,-.092+i*.030,.027,.086,.015,.008,.023);
+const memoryLabel=document.createElement('canvas');
+memoryLabel.width=256;memoryLabel.height=112;
+const labelInk=memoryLabel.getContext('2d');
+labelInk.fillStyle='#d8c7a2';labelInk.fillRect(0,0,256,112);
+labelInk.fillStyle='#454752';labelInk.textAlign='center';labelInk.font='bold 30px monospace';
+labelInk.fillText('MEMORY',128,47);
+labelInk.font='24px monospace';labelInk.fillText('SLOT 01',128,83);
+const memoryTexture=new T.CanvasTexture(memoryLabel);
+memoryTexture.colorSpace=T.SRGBColorSpace;
+const memorySticker=new T.Mesh(new T.PlaneGeometry(.205,.087),new T.MeshStandardMaterial({map:memoryTexture,roughness:.9}));
+memorySticker.rotation.x=-Math.PI/2;
+memorySticker.position.set(0,.035,-.023);
+memoryCard.add(memorySticker);
+ruins.add(memoryCard);
+memoryCard.visible=false;
+let memoryDrop=null;
+function dropMemoryCard(position){
+ critterRayOrigin.set(position.x,3,position.z);
+ critterGroundRay.set(critterRayOrigin,downward);
+ const groundY=critterGroundRay.intersectObjects(floorMeshes)[0]?.point.y??0;
+ memoryDrop={x:position.x,z:position.z,y:groundY+.065,age:0};
+ memoryCard.position.set(memoryDrop.x,memoryDrop.y,memoryDrop.z);
+ memoryCard.visible=true;
+}
+function updateMemoryCard(dt){
+ if(!memoryDrop||memoryDrop.age>=.72)return;
+ memoryDrop.age=Math.min(.72,memoryDrop.age+dt);
+ const t=memoryDrop.age/.72;
+ const hop=Math.sin(Math.PI*t);
+ memoryCard.position.set(memoryDrop.x,memoryDrop.y+.31*hop,memoryDrop.z);
+ memoryCard.rotation.set(.55*hop,1.15*t,.39*hop);
+}
+function resetCritters(){
+ memoryDrop=null;
+ memoryCard.visible=false;
+ for(const c of critters){
+  c.x=c.startX;c.z=c.startZ;c.alarm=0;c.alive=true;c.model.visible=true;
+  c.position.copy(mazePosition(c.x,c.z));
+  c.target.copy(c.position);
+ }
+}
+function updateCritters(dt,time){
+ for(const c of critters){
+  if(!c.alive)continue;
+  const near=Math.hypot(fireball.position.x-c.position.x,fireball.position.z-c.position.z);
+  if(near<fireRadius+.13){
+   c.alive=false;
+   c.model.visible=false;
+   if(c.index===2)dropMemoryCard(c.position);
+   continue;
+  }
+  const atCell=c.position.distanceToSquared(c.target)<.0001;
+  if(near<.58){
+   c.alarm=.68;
+   if(atCell){
+    let best=near+.025,next=null;
+    for(const [dx,dz] of steps){
+     const x=c.x+dx,z=c.z+dz;
+     if(grid[z]?.[x]!==false||critters.some(other=>other!==c&&other.x===x&&other.z===z))continue;
+     const position=mazePosition(x,z);
+     const distance=Math.hypot(fireball.position.x-position.x,fireball.position.z-position.z);
+     if(distance>best){best=distance;next={x,z,position};}
+    }
+    if(next){
+     c.x=next.x;c.z=next.z;
+     c.model.rotation.y=Math.atan2(next.position.x-c.position.x,next.position.z-c.position.z);
+     c.target.copy(next.position);
+    }
+   }
+  }else{
+   c.alarm=Math.max(0,c.alarm-dt);
+  }
+  if(!atCell){
+   const distance=c.position.distanceTo(c.target);
+   c.position.lerp(c.target,Math.min(1,dt*1.22/Math.max(.001,distance)));
+  }
+  critterRayOrigin.set(c.position.x,3,c.position.z);
+  critterGroundRay.set(critterRayOrigin,downward);
+  const floor=critterGroundRay.intersectObjects(floorMeshes)[0]?.point.y??0;
+  const hop=c.alarm>0?.135*Math.abs(Math.sin(time*13+c.index)):.012*Math.sin(time*2.8+c.index);
+  c.model.position.set(c.position.x,floor+hop,c.position.z);
+  c.body.scale.y=.125*(1+.11*Math.sin(time*(c.alarm>0?21:3)+c.index));
+ }
+}
+const markers=new T.Group();
+board.add(markers);
+const frameTrim=new T.MeshStandardMaterial({color:frameWoodColor,map:honeyTexture,roughness:.69});
+const troughWood=new T.MeshStandardMaterial({color:troughWoodColor,map:honeyTexture,roughness:.76});
+const railPath=new T.CatmullRomCurve3([
+ new T.Vector3(-2.59,1.86,.10),new T.Vector3(-2.33,2.79,.10),
+ new T.Vector3(-1.46,3.34,.10),new T.Vector3(-.53,3.47,.10),
+ new T.Vector3(.60,3.47,.10),new T.Vector3(1.58,3.26,.10),
+ new T.Vector3(2.14,2.76,.10),new T.Vector3(2.27,2.20,.10)
+]);
+for(const height of [.045,.12,.195,.27,.345,.42]){
+ const arch=railPath.clone();
+ arch.points.forEach(point=>point.z=height);
+ markers.add(new T.Mesh(new T.TubeGeometry(arch,58,.061,9,false),frameTrim));
+}
+function tableDetail(material,x,y,z,w,h,d){
+ const part=new T.Mesh(blockShape,material);
+ part.position.set(x,y,z);
+ part.scale.set(w,h,d);
+ part.receiveShadow=true;
+ markers.add(part);
+ return part;
+}
+const seamBacking=new T.MeshStandardMaterial({map:honeyTexture,roughness:.91});
+tableDetail(seamBacking,0,0,-.061,5.51,7.41,.006);
+tableDetail(frameTrim,0,3.66,.14,5.55,.11,.19);
+tableDetail(troughWood,-.17,-3.19,.20,5.07,.14,.31).rotation.z=-.122;
+tableDetail(frameTrim,-.17,-3.29,.36,5.07,.14,.12).rotation.z=-.122;
+for(const x of [-2.68,2.34])tableDetail(troughWood,x,-3.14,.21,.13,.28,.30);
+const glassMarbleShape=new T.SphereGeometry(.115,20,14);
+const reserveMarbles=[];
+const settledMarbles=[];
+let marblesRemaining=19;
+const glassColors=[0x214e3e,0x376a52,0x526d46,0x74783d,0x2b5960].map(color=>
+ new T.MeshPhysicalMaterial({color,metalness:.22,roughness:.22,clearcoat:1,clearcoatRoughness:.09}));
+for(let i=0;i<19;i++){
+ const x=2.16-(18-i)*.231;
+ const marble=new T.Mesh(glassMarbleShape,glassColors[i%glassColors.length]);
+ marble.position.set(x,-3.045-(x+.17)*.122,.23);
+ reserveMarbles.push(marble);
+ markers.add(marble);
+}
+const faceFrame=new T.Shape();
+faceFrame.moveTo(-3.03,-3.96);
+faceFrame.lineTo(3.03,-3.96);
+faceFrame.lineTo(3.03,3.96);
+faceFrame.lineTo(-3.03,3.96);
+faceFrame.closePath();
+const frameOpening=new T.Path();
+frameOpening.moveTo(-2.69,-3.62);
+frameOpening.lineTo(-2.69,3.62);
+frameOpening.lineTo(2.69,3.62);
+frameOpening.lineTo(2.69,-3.62);
+frameOpening.closePath();
+faceFrame.holes.push(frameOpening);
+const frameFace=new T.Mesh(new T.ExtrudeGeometry(faceFrame,{
+ depth:.029,bevelEnabled:true,bevelSize:.027,bevelThickness:.022,bevelSegments:3
+}),frameTrim);
+frameFace.position.z=.325;
+frameFace.receiveShadow=true;
+markers.add(frameFace);
+const steelHardware=new T.MeshStandardMaterial({color:0xa9a4a1,metalness:.76,roughness:.35});
+const blackHardware=new T.MeshStandardMaterial({color:0x413730,metalness:.35,roughness:.57});
+const handleMaterial=new T.MeshStandardMaterial({color:0xa82724,roughness:.57});
+const fastener=new T.CylinderGeometry(.048,.048,.022,14);
+fastener.rotateX(Math.PI/2);
+for(const x of [-2.85,2.85])for(const y of [-3.42,-1.69,0,1.69,3.42]){
+ const screw=new T.Mesh(fastener,steelHardware);
+ screw.position.set(x,y,.381);
+ markers.add(screw);
+ tableDetail(blackHardware,x,y,.394,.049,.008,.004);
+}
+for(const x of [-2.86,2.86]){
+ tableDetail(troughWood,x,0,-.23,.29,7.45,.32);
+
+}
+tableDetail(troughWood,0,-3.96,.16,5.72,.16,.43);
+
+const launcherX=2.49,launcherY=-3.43,launcherZ=.18;
+const launcherRod=new T.Mesh(new T.CylinderGeometry(.048,.048,.99,16),steelHardware);
+launcherRod.position.set(launcherX,launcherY-.11,launcherZ);
+markers.add(launcherRod);
+const springPoints=[];
+for(let i=0;i<=110;i++){
+ const t=i/110,angle=t*Math.PI*18;
+ springPoints.push(new T.Vector3(launcherX+.069*Math.cos(angle),launcherY-.20+.36*t,launcherZ+.069*Math.sin(angle)));
+}
+const springPath=new T.CatmullRomCurve3(springPoints);
+const launcherSpring=new T.Mesh(new T.TubeGeometry(springPath,132,.009,6,false),steelHardware);
+markers.add(launcherSpring);
+tableDetail(blackHardware,launcherX,launcherY+.22,launcherZ,.19,.083,.17);
+const handleRest=-4.22;
+const plungerKnob=new T.Mesh(new T.CapsuleGeometry(.105,.23,5,18),handleMaterial);
+plungerKnob.rotation.z=Math.PI/2;
+plungerKnob.position.set(launcherX,handleRest,launcherZ+.16);
+plungerKnob.scale.set(1,1,.9);
+markers.add(plungerKnob);
+const plungerLink=new T.Mesh(new T.CylinderGeometry(.044,.044,1,14),steelHardware);
+markers.add(plungerLink);
+const linkStart=new T.Vector3(),linkEnd=new T.Vector3(),linkDirection=new T.Vector3();
+const plungerUp=new T.Vector3(0,1,0);
+const storyPins=[];
+const storyQueue=[];
+const pegStory=document.querySelector('#peg-story');
+const lostCount=document.querySelector('#lost-count');
+const foundKeepsakes=new Set();
+function countKeepsake(name){
+ foundKeepsakes.add(name);
+ lostCount.textContent='失物 '+foundKeepsakes.size+' / 5';
+}
+const pegTitle=document.querySelector('#peg-story-title');
+const pegText=document.querySelector('#peg-story-text');
+let displayedStory=null;
+const pinStories=[
+ {title:'沒寄出的聖誕卡',text:'那年聖誕節前，我買了一張有金色星星的卡片。寫完地址，才發現我還不知道你搬去了哪裡。\n\n我把卡片收進書裡，想著等你回信就寄。後來那本書不見了。我還記得卡片上只寫了一句：那邊冷嗎？'},
+ {title:'折角的車票',text:'你每次收好車票，都會先把右上角折一下。你說這樣伸手進口袋，摸到那個角，就知道票還在。\n\n最後那張票我弄丟了。往後搭車，我還是會把手放進口袋，摸一摸那個早就沒有的角。'}
+,
+ {title:'防曬乳液',text:'去海邊那天，你一直催我擦防曬。我嫌手黏，擠了一點就跑去玩水。回程才發現，那條防曬乳留在沙灘上了。\n\n那天晚上，我的肩膀曬得通紅。你拿冷毛巾幫我敷，一邊問我下次還敢不敢。我說不敢了。後來每次走到海邊，我都還記得那條毛巾有多涼。'}
+];
+const paperShadow=new T.MeshStandardMaterial({color:0x9d7750,roughness:.94});
+const ticketMaterial=new T.MeshStandardMaterial({color:0xe0bd83,roughness:.92});
+function makeStoryPin(peg,index){
+ const object=new T.Group();
+ if(index===0){
+  const coverCanvas=document.createElement('canvas');
+  coverCanvas.width=256;coverCanvas.height=320;
+  const art=coverCanvas.getContext('2d');
+  art.fillStyle='#a33c3b';art.fillRect(0,0,256,320);
+  art.strokeStyle='#e5c47a';art.lineWidth=4;art.strokeRect(14,14,228,292);
+  art.fillStyle='#375d4c';
+  for(let tier=0;tier<3;tier++){
+   const y=65+tier*30,w=28+tier*17;
+   art.beginPath();art.moveTo(128,y);art.lineTo(128-w,y+58);art.lineTo(128+w,y+58);art.fill();
+  }
+  art.fillStyle='#efca75';
+  art.beginPath();
+  for(let i=0;i<10;i++){
+   const angle=-Math.PI/2+i*Math.PI/5,r=i%2===0?14:6;
+   const x=128+Math.cos(angle)*r,y=54+Math.sin(angle)*r;
+   if(i===0)art.moveTo(x,y);else art.lineTo(x,y);
+  }
+  art.closePath();art.fill();
+  for(let i=0;i<18;i++){
+   const x=24+(i*41)%208,y=31+(i*59)%174;
+   art.beginPath();art.arc(x,y,1+i%3,0,Math.PI*2);art.fill();
+  }
+  art.textAlign='center';art.font='italic 27px Georgia';art.fillText('Merry Christmas',128,256);
+  const coverTexture=new T.CanvasTexture(coverCanvas);
+  coverTexture.colorSpace=T.SRGBColorSpace;
+  const coverMaterial=new T.MeshStandardMaterial({map:coverTexture,roughness:.90,side:T.DoubleSide});
+  const paper=new T.Mesh(blockShape,ticketMaterial);
+  paper.scale.set(.32,.40,.017);
+  paper.position.z=-.007;
+  object.add(paper);
+  const cover=new T.Mesh(new T.PlaneGeometry(.32,.40),coverMaterial);
+  cover.position.set(-.003,0,.025);
+  cover.rotation.y=-.14;
+  object.add(cover);
+  const spine=new T.Mesh(blockShape,paperShadow);
+  spine.position.set(-.159,0,.002);
+  spine.scale.set(.013,.401,.019);
+  object.add(spine);
+ }else if(index===1){
+  const paper=new T.Mesh(blockShape,ticketMaterial);
+  paper.scale.set(.37,.20,.012);
+  object.add(paper);
+  for(let i=0;i<5;i++){
+   const line=new T.Mesh(blockShape,blackHardware);
+   line.position.set(-.11+i*.052,.018,.008);
+   line.scale.set(.010,.074-(i%2)*.025,.003);
+   object.add(line);
+  }
+  const fold=new T.Mesh(new T.BufferGeometry().setFromPoints([
+   new T.Vector3(.123,.096,.01),new T.Vector3(.179,.037,.01),new T.Vector3(.179,.096,.028)
+  ]),paperShadow);
+  fold.geometry.computeVertexNormals();
+  object.add(fold);
+ }else{
+  const tubeMaterial=new T.MeshStandardMaterial({color:0xf1ddad,roughness:.77});
+  const capMaterial=new T.MeshStandardMaterial({color:0xd5763a,roughness:.55});
+  const tube=new T.Mesh(new T.CapsuleGeometry(.108,.19,6,20),tubeMaterial);
+  tube.scale.set(1,1,.41);
+  object.add(tube);
+  const seal=new T.Mesh(blockShape,tubeMaterial);
+  seal.position.y=.182;
+  seal.scale.set(.184,.021,.067);
+  object.add(seal);
+  const cap=new T.Mesh(new T.CylinderGeometry(.065,.072,.069,24),capMaterial);
+  cap.position.y=-.185;
+  cap.scale.z=.78;
+  object.add(cap);
+  const label=document.createElement('canvas');
+  label.width=128;label.height=192;
+  const ink=label.getContext('2d');
+  ink.fillStyle='#f3dfa9';ink.fillRect(0,0,128,192);
+  ink.fillStyle='#dd8440';ink.beginPath();ink.arc(64,63,23,0,Math.PI*2);ink.fill();
+  ink.fillStyle='#6c4b34';ink.textAlign='center';ink.font='bold 27px sans-serif';
+  ink.fillText('SPF 50',64,122);
+  ink.font='13px sans-serif';ink.fillText('防曬乳液',64,150);
+  const texture=new T.CanvasTexture(label);
+  texture.colorSpace=T.SRGBColorSpace;
+  const front=new T.Mesh(new T.PlaneGeometry(.14,.205),new T.MeshStandardMaterial({map:texture,roughness:.82}));
+  front.position.set(0,.015,.045);
+  object.add(front);
+ }
+ object.visible=false;
+ markers.add(object);
+ return {object,x:peg.x,y:peg.y,story:pinStories[index],age:0,found:false};
+}
+function resetStoryPins(){
+ storyQueue.length=0;
+ displayedStory=null;
+ if(pegStory.open)pegStory.close();
+ for(const item of storyPins){
+  item.found=false;
+  item.object.visible=false;
+ }
+}
+function startStoryPin(item){
+ if(!item||item.found)return;
+ item.found=true;
+ item.age=0;
+ item.object.visible=true;
+ item.object.position.set(item.x,item.y,.13);
+ item.object.scale.setScalar(.32);
+ storyQueue.push(item);
+ tableDrag=plungerDrag=null;
+ requestedTilt=tableTilt;
+ launch.disabled=true;
+}
+function updateStoryPins(dt){
+ if(displayedStory||!storyQueue.length)return;
+ const item=storyQueue[0];
+ item.age+=dt;
+ const t=Math.min(1,item.age/.54);
+ const pop=Math.sin(t*Math.PI/2);
+ item.object.position.set(item.x,item.y+.42*pop,.13+.34*pop);
+ item.object.rotation.z=.65*(1-t);
+ item.object.scale.setScalar(.32+pop*1.82);
+}
+function storyPaused(){
+ return storyQueue.length>0||displayedStory!==null;
+}
+function readPegStory(event){
+ if(displayedStory||!storyQueue.length)return;
+ const item=storyQueue[0];
+ if(item.age<.54)return;
+ const bounds=renderer.domElement.getBoundingClientRect();
+ const center=item.object.getWorldPosition(new T.Vector3()).project(camera);
+ const x=bounds.left+(center.x+1)*bounds.width/2;
+ const y=bounds.top+(1-center.y)*bounds.height/2;
+ if(Math.hypot(x-event.clientX,y-event.clientY)>56)return;
+ displayedStory=storyQueue.shift();
+ countKeepsake(item.story.title);
+ pegTitle.textContent=item.story.title;
+ pegText.textContent=item.story.text;
+ pegStory.querySelector('button').textContent='回到彈珠台';
+ pegStory.showModal();
+}
+pegStory.addEventListener('close',()=>{
+ if(displayedStory)displayedStory.object.visible=false;
+ displayedStory=null;
+ if(!storyQueue.length){
+  launch.disabled=tableWonAt!==null;
+  requestedTilt=0;
+ }
+});
+const extraPinMaterial=new T.MeshStandardMaterial({color:0xb59a70,metalness:.51,roughness:.39});
+for(let row=0;row<6;row++){
+ const count=row%2?6:5;
+ for(let i=0;i<count;i++){
+  const x=(i-(count-1)/2)*.73-(row%2)*.16;
+  const y=2.33-row*.61;
+  const peg={x,y,r:.045};
+  pegs.push(peg);
+  const pin=new T.Mesh(pinGeometry,extraPinMaterial);
+  pin.position.set(x,y,.021);
+  pin.scale.set(.09,.09,.135);
+  markers.add(pin);
+  const storyIndex=row===1&&i===2?0:row===4&&i===2?1:row===2&&i===3?2:-1;
+  if(storyIndex>=0){
+   peg.reward=makeStoryPin(peg,storyIndex);
+   storyPins.push(peg.reward);
+  }
+ }
+}
+if(storyPins.length!==3)throw Error('Expected three story pins');
+const crossbar=new T.Mesh(new T.CylinderGeometry(.028,.028,binRight-binLeft,14),steelHardware);
+crossbar.rotation.z=Math.PI/2;
+crossbar.position.set((binLeft+binRight)/2,-2.77,.21);
+markers.add(crossbar);
+binLetters.forEach((value,i)=>{
+ const tile=document.createElement('canvas');
+ tile.width=tile.height=64;
+ const ink=tile.getContext('2d');
+ ink.fillStyle='#aa7548';
+ ink.beginPath();ink.arc(32,32,28,0,Math.PI*2);ink.fill();
+ ink.fillStyle='#fff0ce';
+ ink.font='bold 25px sans-serif';ink.textAlign='center';ink.textBaseline='middle';
+ ink.fillText(String(value),32,33);
+ const texture=new T.CanvasTexture(tile);
+ texture.colorSpace=T.SRGBColorSpace;
+ const marker=new T.Mesh(new T.PlaneGeometry(.46,.46),new T.MeshBasicMaterial({map:texture,transparent:true}));
+ marker.position.set(binLeft+binWidth*(i+.5),-1.50,.03);
+ markers.add(marker);
+});
+const mazeCamera=new T.Vector3(0,12.2,7.8),tableCamera=new T.Vector3(0,7.3,9.0);
+const look=new T.Vector3(0,0,0);
+const finaleMap=new T.Group();
+const mapCanvas=document.createElement('canvas');
+mapCanvas.width=1024;mapCanvas.height=800;
+const mapInk=mapCanvas.getContext('2d');
+mapInk.save();
+mapInk.beginPath();
+for(const [i,[x,y]] of [[29,26],[318,20],[668,32],[988,23],[996,204],[990,405],[1002,663],[957,772],[724,782],[514,772],[274,788],[26,778],[19,508],[31,276]].entries()){
+ if(i===0)mapInk.moveTo(x,y);else mapInk.lineTo(x,y);
+}
+mapInk.closePath();mapInk.clip();
+const paperWash=mapInk.createLinearGradient(0,0,1024,800);
+paperWash.addColorStop(0,'#c9a578');
+paperWash.addColorStop(.18,'#ead6aa');
+paperWash.addColorStop(.67,'#f0dfba');
+paperWash.addColorStop(1,'#b88960');
+mapInk.fillStyle=paperWash;mapInk.fillRect(0,0,1024,800);
+for(let i=0;i<7500;i++){
+ const x=(i*179)%1024,y=(i*113+Math.floor(i/17)*53)%800;
+ mapInk.fillStyle=i%3?'rgba(93,64,41,.047)':'rgba(255,251,225,.20)';
+ mapInk.fillRect(x,y,1+i%3,1);
+}
+mapInk.strokeStyle='rgba(68,103,113,.23)';mapInk.lineWidth=1.5;
+mapInk.beginPath();
+for(let x=38;x<1008;x+=26){mapInk.moveTo(x,0);mapInk.lineTo(x,800);}
+for(let y=31;y<800;y+=26){mapInk.moveTo(0,y);mapInk.lineTo(1024,y);}
+mapInk.stroke();
+mapInk.fillStyle='#413a34';
+mapInk.font='47px "Noto Serif TC","Microsoft JhengHei",serif';
+mapInk.fillText('迷宮地圖',88,130);
+mapInk.font='27px "Noto Serif TC","Microsoft JhengHei",serif';
+mapInk.fillText('第一層',91,171);
+const mapStep=41;
+for(let z=0;z<size;z++)for(let x=0;x<size;x++){
+ if(!grid[z][x])continue;
+ const px=105+x*mapStep,pz=214+z*mapStep;
+ mapInk.strokeStyle='#52463b';mapInk.lineWidth=2.7;
+ mapInk.strokeRect(px+.7*Math.sin(x+z),pz+Math.cos(z),mapStep,mapStep);
+ mapInk.strokeStyle='#6d5c49';mapInk.lineWidth=1.3;
+ for(let h=7;h<38;h+=7){
+  mapInk.beginPath();mapInk.moveTo(px+h,pz+3);mapInk.lineTo(px+3,pz+h);mapInk.stroke();
+  mapInk.beginPath();mapInk.moveTo(px+h,pz+38);mapInk.lineTo(px+38,pz+h);mapInk.stroke();
+ }
+}
+mapInk.strokeStyle='#99443a';mapInk.lineWidth=5;
+mapInk.beginPath();mapInk.arc(167,275,13,0,Math.PI*2);mapInk.stroke();
+mapInk.beginPath();mapInk.moveTo(169,289);mapInk.lineTo(170,316);mapInk.lineTo(211,316);mapInk.stroke();
+mapInk.save();
+mapInk.translate(617,291);
+mapInk.rotate(-.08);
+mapInk.fillStyle='#784740';
+mapInk.font='36px "DFKai-SB","Microsoft JhengHei",serif';
+mapInk.fillText('從這裡開始',0,0);
+mapInk.fillText('看看牆壁',-5,174);
+mapInk.fillText('下次再走 →',16,291);
+mapInk.strokeStyle='#784740';mapInk.lineWidth=2.5;
+mapInk.beginPath();mapInk.moveTo(3,12);mapInk.quadraticCurveTo(86,21,160,10);mapInk.stroke();
+mapInk.restore();
+for(const [x,y,w,h] of [[515,400,32,800],[510,401,1024,31]]){
+ const fold=w<h?mapInk.createLinearGradient(x-w/2,y,x+w/2,y):mapInk.createLinearGradient(x,y-h/2,x,y+h/2);
+ fold.addColorStop(0,'#583b2600');
+ fold.addColorStop(.46,'#6e493233');
+ fold.addColorStop(.51,'#fff9dca1');
+ fold.addColorStop(.57,'#76503729');
+ fold.addColorStop(1,'#583b2600');
+ mapInk.fillStyle=fold;
+ mapInk.fillRect(x-w/2,y-h/2,w,h);
+}
+mapInk.restore();
+const mapTexture=new T.CanvasTexture(mapCanvas);
+mapTexture.colorSpace=T.SRGBColorSpace;
+const sheet=new T.PlaneGeometry(3.1,2.42,32,24);
+const paperVertices=sheet.attributes.position;
+for(let i=0;i<paperVertices.count;i++){
+ const x=paperVertices.getX(i),y=paperVertices.getY(i);
+ const ripple=.021*Math.sin(x*6+y*4)+.012*Math.cos(y*11-x*3);
+ const curl=.115*T.MathUtils.smoothstep(x,1.06,1.54)*T.MathUtils.smoothstep(-y,.55,1.21);
+ paperVertices.setZ(i,ripple+.036*Math.exp(-Math.abs(x)*11)+curl);
+}
+sheet.computeVertexNormals();
+const paper=new T.Mesh(sheet,new T.MeshStandardMaterial({
+ map:mapTexture,transparent:true,alphaTest:.45,side:T.FrontSide,roughness:1,
+ emissive:0x75583c,emissiveIntensity:.14
+}));
+const backCanvas=document.createElement('canvas');
+backCanvas.width=mapCanvas.width;
+backCanvas.height=mapCanvas.height;
+const backInk=backCanvas.getContext('2d');
+backInk.fillStyle='#dbbd8e';
+backInk.fillRect(0,0,backCanvas.width,backCanvas.height);
+backInk.translate(backCanvas.width,0);
+backInk.scale(-1,1);
+backInk.fillStyle='#493322';
+backInk.font='58px serif';
+backInk.textBaseline='top';
+backInk.fillText('1978',66,56);
+backInk.font='36px serif';
+backInk.textAlign='right';
+backInk.textBaseline='bottom';
+backInk.fillText('1982',backCanvas.width-66,backCanvas.height-56);
+const backTexture=new T.CanvasTexture(backCanvas);
+backTexture.colorSpace=T.SRGBColorSpace;
+const backPaper=new T.Mesh(sheet,paper.material.clone());
+backPaper.material.map=backTexture;
+backPaper.material.side=T.BackSide;
+finaleMap.add(paper,backPaper);
+finaleMap.visible=false;
+scene.add(finaleMap);
+const endingCamera=new T.Vector3(.35,1.05,6.3);
+function revealFinalMap(time){
+ const dissolve=T.MathUtils.smoothstep(time,0,1.24);
+ for(const b of blocks){
+  b.mesh.scale.copy(b.scale).multiplyScalar(Math.max(.0001,1-dissolve));
+  b.mesh.position.y=b.position.y-dissolve*.75;
+  b.mesh.visible=dissolve<1;
+ }
+ const cameraBlend=T.MathUtils.smoothstep(time,.22,1.44);
+ camera.position.lerpVectors(endingViewStart,endingCamera,cameraBlend);
+ camera.lookAt(look);
+ const reveal=T.MathUtils.smoothstep(time,1.06,2.04);
+ finaleMap.visible=reveal>0;
+ finaleMap.scale.setScalar(.70+.30*reveal);
+ finaleMap.position.y=.22*(1-reveal);
+ finaleMap.rotation.set(-.10,-.20+.09*reveal,-.13+.055*reveal);
+ paper.material.opacity=backPaper.material.opacity=reveal;
+ if(time>=2.06){
+  phase='final-map';
+  rotateFinalMap.enabled=true;
+  status.textContent='';
+  endingActions.hidden=false;
+ }
+}
+const endingViewStart=new T.Vector3();
+const endingActions=document.querySelector('#ending-actions');
+document.querySelector('#replay-table').addEventListener('click',()=>{
+ if(phase!=='final-map')return;
+ reset();
+ rebuild(3);
+});
+document.querySelector('#replay-maze').addEventListener('click',()=>{
+ if(phase==='final-map')reset();
+});
+function createDragControls(camera, canvas, target, minDistance, maxDistance, aboveGround=false){
+ const controls={enabled:true,wasGesture:false};
+ const fingers=new Map();
+ const startOffset=new T.Vector3(),startOrientation=new T.Quaternion();
+ const horizontal=new T.Quaternion(),vertical=new T.Quaternion(),rotation=new T.Quaternion(),twist=new T.Quaternion();
+ const right=new T.Vector3(1,0,0),up=new T.Vector3(0,1,0),forwardAxis=new T.Vector3(0,0,1);
+ const offset=new T.Vector3();
+ const orbit=new T.Spherical();
+ let startX=0,startY=0,startGap=0,startDistance=0,startAngle=0;
+ camera.lookAt(target);
+ function gap(){
+  const [a,b]=fingers.values();
+  return Math.hypot(a.x-b.x,a.y-b.y);
+ }
+ function resetGesture(){
+  const [first]=fingers.values();
+  if(!first)return;
+  startX=first.x;startY=first.y;
+  startOffset.copy(camera.position).sub(target);
+  startOrientation.copy(camera.quaternion);
+  startDistance=startOffset.length();
+  startGap=fingers.size===2?gap():0; if(startGap){const [a,b]=fingers.values();startAngle=Math.atan2(b.y-a.y,b.x-a.x);}
+ }
+ function orbitAboveGround(yaw,pitch){
+  orbit.setFromVector3(startOffset);
+  orbit.theta+=yaw;
+  orbit.phi=T.MathUtils.clamp(orbit.phi+pitch,.07,Math.PI/2-.12);
+  camera.position.copy(offset.setFromSpherical(orbit)).add(target);
+  camera.lookAt(target);
+ }
+ function zoom(distance){
+  offset.copy(camera.position).sub(target).setLength(T.MathUtils.clamp(distance,minDistance,maxDistance));
+  camera.position.copy(target).add(offset);
+ }
+ canvas.addEventListener('pointerdown',event=>{
+  if(!controls.enabled||(event.pointerType==='mouse'&&event.button!==0)||fingers.size>=2)return;
+  if(!fingers.size)controls.wasGesture=false;
+  fingers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+  if(fingers.size===2)controls.wasGesture=true;
+  canvas.setPointerCapture(event.pointerId);
+  resetGesture();
+ });
+ canvas.addEventListener('pointermove',event=>{
+  const point=fingers.get(event.pointerId);
+  if(!point||!controls.enabled)return;
+  point.x=event.clientX;point.y=event.clientY;
+  if(fingers.size===2){
+   if(startGap>0){
+    const [a,b]=fingers.values();
+    const change=Math.atan2(b.y-a.y,b.x-a.x)-startAngle;
+    const angle=Math.atan2(Math.sin(change),Math.cos(change));
+    if(aboveGround)orbitAboveGround(-angle,0);
+    else camera.quaternion.copy(startOrientation).multiply(twist.setFromAxisAngle(forwardAxis,angle));
+    zoom(startDistance*startGap/Math.max(8,gap()));
+   }
+   return;
+  }
+  const dx=point.x-startX,dy=point.y-startY;
+  if(!controls.wasGesture&&Math.hypot(dx,dy)<6)return;
+  controls.wasGesture=true;
+  const speed=Math.PI/Math.max(240,Math.min(canvas.clientWidth,canvas.clientHeight));
+  if(aboveGround){
+   orbitAboveGround(-dx*speed,-dy*speed);
+   return;
+  }
+  horizontal.setFromAxisAngle(up,-dx*speed);
+  vertical.setFromAxisAngle(right,-dy*speed);
+  rotation.copy(startOrientation).multiply(horizontal).multiply(vertical);
+  camera.quaternion.copy(rotation);
+  rotation.multiply(startOrientation.clone().invert());
+  camera.position.copy(startOffset).applyQuaternion(rotation).add(target);
+ });
+ function release(event){
+  if(fingers.delete(event.pointerId))resetGesture();
+ }
+ for(const type of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(type,release);
+ window.addEventListener('blur',()=>fingers.clear());
+ canvas.addEventListener('wheel',event=>{
+  if(!controls.enabled)return;
+  event.preventDefault();
+  const pixels=event.deltaY*(event.deltaMode===1?16:event.deltaMode===2?canvas.clientHeight:1);
+  zoom(camera.position.distanceTo(target)*Math.exp(T.MathUtils.clamp(pixels,-500,500)*.0011));
+  resetGesture();
+ },{passive:false});
+ return controls;
+}
+let phase='maze',phaseStart=0,now=0,previous=0;
+const tableWord=document.querySelector('#table-word');
+const wordLetters=[...tableWord.children];
+const binHits=Array(binCount).fill(0);
+let tableWonAt=null;
+let tableTransitionDistance=tableCamera.length();
+function showWordProgress(){
+ wordLetters.forEach(letter=>{
+  const count=binHits[binLetters.indexOf(letter.textContent)];
+  letter.style.opacity=[0,.27,.61,1][Math.min(3,count)];
+ });
+}
+const activeMarbles=[];
+let tableTilt=0,requestedTilt=0,tableDrag=null,plungerDrag=null,plungerPull=0;
+const letters=[...letterForm.querySelectorAll('input')];
+const rotateMaze=createDragControls(camera,renderer.domElement,look,8,26);
+const rotateFinalMap=createDragControls(camera,renderer.domElement,look,3.8,11);
+rotateFinalMap.enabled=false;
+const startingView=new T.Quaternion();
+const tableView=new T.Quaternion().setFromRotationMatrix(new T.Matrix4().lookAt(tableCamera,look,camera.up));
+const cameraOffset=new T.Vector3(0,0,1);
+let startingDistance=mazeCamera.length();
+function reset(){
+ phase='maze';
+ endingActions.hidden=true;
+ finaleMap.visible=false;
+ rotateFinalMap.enabled=false;
+ tableWord.hidden=true;
+ resetMarbles();
+ tableTilt=requestedTilt=0;
+ tableDrag=plungerDrag=null;
+ plungerPull=0;
+ board.quaternion.copy(boardQuaternion);
+ letterForm.reset();
+ status.textContent='拖曳旋轉迷宮，找出牆上和地面的五個字母。';
+ letterForm.hidden=false;launch.hidden=true;
+ rotateMaze.enabled=true;
+ ruins.visible=true;
+ fireball.visible=true;
+ fireball.position.copy(fireStart);
+ fireVelocity.set(0,0);
+ fireCore.quaternion.identity();
+ resetHiddenP();
+ resetCritters();
+ for(const creature of creatures){creature.burn=0;creature.touching=false;creature.bodyFire.visible=false;}
+ markers.visible=false;
+ blocks.forEach(b=>{
+  scene.add(b.mesh);
+  b.mesh.visible=true;
+  b.mesh.geometry=b.mazeGeometry;
+  b.mesh.material.metalness=0;
+  b.mesh.material.roughness=.98;
+  b.mesh.updateMorphTargets();
+  b.mesh.position.copy(b.position);b.mesh.scale.copy(b.scale);
+  b.mesh.quaternion.copy(b.orientation);b.mesh.material.color.copy(b.color);
+  if(b.mesh.morphTargetInfluences)b.mesh.morphTargetInfluences[0]=0;
+  b.surfaceFade.value=1;
+  b.mesh.material.bumpScale=rockBump;
+ });
+ scene.updateMatrixWorld(true);
+ settleFireball();
+ camera.position.copy(mazeCamera);camera.lookAt(look);
+ resize();
+}
+function checkLetters(){
+ if(phase!=='maze')return;
+ const filled=letters.map(field=>field.value.toLowerCase()).filter(Boolean);
+ if(filled.length<5)return;
+ if(filled.slice().sort().join('')!=='ailps'){
+  status.textContent='這組字母沒有打開迷宮，再找找看。';
+  return;
+ }
+ phase='reveal-map';phaseStart=now;
+ endingViewStart.copy(camera.position);
+ rotateMaze.enabled=false;
+ letterForm.hidden=true;
+ ruins.visible=false;
+ fireball.visible=false;
+ status.textContent='';
+}
+letterForm.addEventListener('submit',event=>{event.preventDefault();checkLetters();});
+letters.forEach((field,index)=>{
+ field.addEventListener('input',()=>{
+  field.value=field.value.normalize('NFKC').replace(/[^a-z]/gi,'').slice(-1);
+  if(field.value&&index<letters.length-1){letters[index+1].focus();letters[index+1].select();}
+  checkLetters();
+ });
+ field.addEventListener('paste',event=>{
+  const value=event.clipboardData.getData('text').normalize('NFKC').replace(/[^a-z]/gi,'');
+  if(!value)return;
+  event.preventDefault();
+  [...value].slice(0,letters.length-index).forEach((letter,offset)=>{letters[index+offset].value=letter;});
+  checkLetters();
+ });
+ field.addEventListener('keydown',event=>{
+  if(event.key==='Backspace'&&!field.value&&index>0)letters[index-1].focus();
+ });
+});
+addEventListener('keydown',event=>{
+ if(!pegStory.open&&event.code==='Space'&&phase==='table'&&!event.repeat&&event.target.tagName!=='BUTTON'){event.preventDefault();shoot();}
+});
+const spin=new T.Quaternion(),euler=new T.Euler();
+function rebuild(time=(now-phaseStart)/1000){
+ const cameraBlend=T.MathUtils.smoothstep(time,1.0,2.8);
+ camera.quaternion.copy(startingView).slerp(tableView,cameraBlend);
+ camera.position.copy(cameraOffset).applyQuaternion(camera.quaternion).multiplyScalar(T.MathUtils.lerp(startingDistance,tableTransitionDistance,cameraBlend)).add(look);
+ for(const b of blocks){
+  const elapsed=time-b.delay;
+  const away=T.MathUtils.smoothstep(elapsed,0,.85);
+  const settle=T.MathUtils.smoothstep(elapsed,.91,2.63);
+  b.mesh.position.lerpVectors(b.position,b.scatter,away).lerp(b.target,settle);
+  b.mesh.scale.copy(b.scale).lerp(b.targetScale,settle);
+  euler.set(b.spin.x*away,b.spin.y*away,b.spin.z*away);
+  spin.setFromEuler(euler);
+  b.mesh.quaternion.copy(b.orientation).multiply(spin).slerp(boardQuaternion,settle);
+  const geometry=settle>=.86?b.tableGeometry:b.mazeGeometry;
+  if(b.mesh.geometry!==geometry){
+   b.mesh.geometry=geometry;
+   b.mesh.updateMorphTargets();
+  }
+  if(b.mesh.morphTargetInfluences)b.mesh.morphTargetInfluences[0]=settle;
+  b.surfaceFade.value=1-settle;
+  b.mesh.material.metalness=b.tableKind==='pin'?.51*settle:0;
+  b.mesh.material.roughness=T.MathUtils.lerp(.98,b.tableKind==='pin'?.39:.77,settle);
+  if(b.mesh.material.bumpMap){
+   b.mesh.material.bumpScale=rockBump*(1-settle);
+  }
+ }
+ markers.visible=time>=(phase==='to-maze'?2.74:2.31);
+ if(time<2.95)return;
+ phase='table';
+ rotateMaze.enabled=false;
+ letterForm.hidden=true;
+ ruins.visible=false;
+ fireball.visible=false;
+ for(const b of blocks)board.attach(b.mesh);
+ markers.visible=true;
+ launch.hidden=false;
+ status.textContent='向下拉右下角的拉柄，放手發射。左右拖曳可輕搖台面。';
+ resize();
+ tableWord.hidden=false;
+}
+const ballRadius=.115;
+const guide=new T.CatmullRomCurve3([
+ new T.Vector3(2.49,-3.28,.13),new T.Vector3(2.49,2.15,.13),
+ new T.Vector3(2.21,3.11,.13),new T.Vector3(1.41,3.30,.13)
+]);
+function resetMarbles(){
+ resetStoryPins();
+ binHits.fill(0);
+ tableWonAt=null;
+ showWordProgress();
+ for(const marble of activeMarbles)board.remove(marble.mesh);
+ activeMarbles.length=0;
+ for(const {mesh} of settledMarbles)mesh.removeFromParent();
+ settledMarbles.length=0;
+ marblesRemaining=reserveMarbles.length;
+ reserveMarbles.forEach((marble,i)=>{
+  const x=2.16-(marblesRemaining-1-i)*.231;
+  marble.position.set(x,-3.045-(x+.17)*.122,.23);
+  marble.visible=true;
+  marble.material=glassColors[i%glassColors.length];
+ });
+ launch.disabled=false;
+}
+function updateReserve(dt){
+ for(let i=0;i<marblesRemaining;i++){
+  const marble=reserveMarbles[i];
+  const target=2.16-(marblesRemaining-1-i)*.231;
+  const x=T.MathUtils.damp(marble.position.x,target,7,dt);
+  marble.rotation.z-=(x-marble.position.x)/ballRadius;
+  marble.position.set(x,-3.045-(x+.17)*.122,.23);
+ }
+}
+function scoreMarble(b){
+ const mesh=b.mesh;
+ mesh.position.set(b.x,b.y,.13);
+ markers.add(mesh);
+ settledMarbles.push({mesh,bin:b.bin});
+ binHits[b.bin]++;
+ showWordProgress();
+ const complete=wordLetters.every(letter=>binHits[binLetters.indexOf(letter.textContent)]>=3);
+ if(complete&&tableWonAt===null){
+  tableWonAt=now;
+  launch.disabled=true;
+  status.textContent='SHAN 已集齊。';
+
+ }
+ b.settled=true;
+}
+function shoot(strength=.66){
+ if(phase!=='table'||storyPaused()||tableWonAt!==null||marblesRemaining===0)return;
+ const next=reserveMarbles[--marblesRemaining];
+ next.visible=false;
+ const mesh=new T.Mesh(glassMarbleShape,next.material);
+ mesh.position.copy(guide.getPointAt(0));
+ board.add(mesh);
+ activeMarbles.push({
+  mesh,guideDistance:0,guideVelocity:6.9+7.0*strength,inGuide:true,
+  x:0,y:0,vx:0,vy:0,step:0,stall:0,lowest:Infinity,settled:false
+ });
+ status.textContent='彈珠已發射。';
+}
+launch.addEventListener('click',()=>{
+ if(phase!=='table'||storyPaused()||tableWonAt!==null)return;
+ resetMarbles();
+ tableDrag=plungerDrag=null;
+ requestedTilt=plungerPull=0;
+ status.textContent='向下拉右下角的拉柄，放手發射。左右拖曳可輕搖台面。';
+});
+function openMaze(){
+ tableTransitionDistance=camera.position.distanceTo(look);
+ startingDistance=mazeCamera.length();
+ startingView.setFromRotationMatrix(new T.Matrix4().lookAt(mazeCamera,look,camera.up));
+ board.quaternion.copy(boardQuaternion);
+ for(const b of blocks)scene.attach(b.mesh);
+ for(const {mesh} of activeMarbles)board.remove(mesh);
+ activeMarbles.length=0;
+ tableWord.hidden=true;
+ launch.hidden=true;
+ phase='to-maze';
+ phaseStart=now;
+ status.textContent='彈珠台正在重新組合。';
+}
+function marbleStep(b,dt){
+ b.vx-=Math.sin(tableTilt)*6.2*dt;
+ b.vy-=Math.cos(tableTilt)*6.2*dt;
+ b.x+=b.vx*dt;
+ b.y+=b.vy*dt;
+ for(const peg of pegs){
+  const dx=b.x-peg.x,dy=b.y-peg.y;
+  const distance=Math.hypot(dx,dy),limit=peg.r+ballRadius;
+  if(distance>=limit||distance<.0001)continue;
+  const nx=dx/distance,ny=dy/distance,dot=b.vx*nx+b.vy*ny;
+  b.x=peg.x+nx*limit;b.y=peg.y+ny*limit;
+  if(dot<0){
+   b.vx-=1.64*dot*nx;b.vy-=1.64*dot*ny;
+   startStoryPin(peg.reward);
+  }
+ }
+ const rightWall=b.y<2.42?binRight:2.66;
+ if(b.x>rightWall-ballRadius){
+  b.x=rightWall-ballRadius;
+  if(b.vx>0)b.vx*=-.70;
+ }
+ if(b.x<binLeft+ballRadius){
+  b.x=binLeft+ballRadius;
+  if(b.vx<0)b.vx*=-.70;
+ }
+ if(b.y< -1.68){
+  for(let i=1;i<binCount;i++){
+   const divider=binLeft+i*binWidth;
+   const delta=b.x-divider;
+   if(Math.abs(delta)>=ballRadius+.038)continue;
+   b.x=divider+Math.sign(delta||b.vx||1)*(ballRadius+.038);
+   b.vx*=-.57;
+  }
+ }
+ if(b.y<b.lowest-.028){b.lowest=b.y;b.stall=0;}
+ else b.stall+=dt;
+ if(b.stall>.82&&Math.abs(b.vy)<.48){
+  b.vx+=(b.x>0?-1:1)*.44;
+  b.stall=0;
+ }
+ if(b.bin===undefined&&b.y<=-1.83){
+  b.bin=T.MathUtils.clamp(Math.floor((b.x-binLeft)/binWidth),0,binCount-1);
+ }
+ if(b.bin===undefined)return;
+ const center=binLeft+binWidth*(b.bin+.5);
+ const wallGap=binWidth*.5-ballRadius-.044;
+ b.x=T.MathUtils.clamp(b.x,center-wallGap,center+wallGap);
+ let support=-2.66;
+ for(const settled of settledMarbles){
+  if(settled.bin!==b.bin)continue;
+  const dx=b.x-settled.mesh.position.x;
+  const diameter=2*ballRadius;
+  if(Math.abs(dx)>=diameter)continue;
+  const collisionY=settled.mesh.position.y+Math.sqrt(diameter*diameter-dx*dx);
+  if(b.y>=settled.mesh.position.y-.045)support=Math.max(support,collisionY);
+ }
+ if(b.y>support)return;
+ b.y=support;
+ b.vy=Math.min(1.85,Math.max(0,-b.vy*.34));
+ b.vx*=.48;
+ if(Math.abs(b.vy)<.15)scoreMarble(b);
+}
+const launchGuideLength=guide.getLength();
+const launchGuideEnd=guide.getPointAt(1);
+const launchGuideTangent=guide.getTangentAt(1);
+const guideDeceleration=4.75;
+function guideStep(marble,dt){
+ const speed=marble.guideVelocity;
+ marble.guideDistance+=(speed-.5*guideDeceleration*dt)*dt;
+ marble.guideVelocity-=guideDeceleration*dt;
+ if(marble.guideDistance>=launchGuideLength){
+  const exitSpeed=Math.max(.32,marble.guideVelocity*.53);
+  marble.inGuide=false;
+  marble.x=launchGuideEnd.x;
+  marble.y=launchGuideEnd.y;
+  marble.vx=launchGuideTangent.x*exitSpeed;
+  marble.vy=launchGuideTangent.y*exitSpeed;
+  marble.lowest=marble.y;
+  marble.mesh.position.copy(launchGuideEnd);
+  return true;
+ }
+ if(marble.guideDistance<=0&&marble.guideVelocity<0)return false;
+ marble.mesh.position.copy(guide.getPointAt(Math.max(0,marble.guideDistance/launchGuideLength)));
+ return true;
+}
+function returnToReserve(marble){
+ const returned=reserveMarbles[marblesRemaining++];
+ returned.material=marble.mesh.material;
+ returned.position.set(2.16,-3.045-(2.16+.17)*.122,.23);
+ returned.visible=true;
+ board.remove(marble.mesh);
+}
+function updateBall(dt){
+ updateReserve(dt);
+ for(let i=activeMarbles.length-1;i>=0;i--){
+  const marble=activeMarbles[i];
+  if(marble.inGuide){
+   if(!guideStep(marble,dt)){
+    returnToReserve(marble);
+    activeMarbles.splice(i,1);
+   }
+   continue;
+  }
+  marble.step+=dt;
+  while(!marble.settled&&!storyPaused()&&marble.step>=1/120){
+   marble.step-=1/120;
+   marbleStep(marble,1/120);
+  }
+  if(marble.settled)activeMarbles.splice(i,1);
+  else marble.mesh.position.set(marble.x,marble.y,.13);
+  if(storyPaused())return;
+ }
+}
+const playCanvas=renderer.domElement;
+playCanvas.addEventListener('click',readPegStory);
+const mapRay=new T.Raycaster();
+const mapPointer=new T.Vector2();
+playCanvas.addEventListener('click',event=>{
+ if(phase!=='final-map'||rotateFinalMap.wasGesture||pegStory.open)return;
+ const bounds=playCanvas.getBoundingClientRect();
+ mapPointer.set((event.clientX-bounds.left)/bounds.width*2-1,1-(event.clientY-bounds.top)/bounds.height*2);
+ mapRay.setFromCamera(mapPointer,camera);
+ if(!mapRay.intersectObjects([paper,backPaper]).length)return;
+ countKeepsake('手繪的遊戲地圖');
+ pegTitle.textContent='手繪的遊戲地圖';
+ pegText.textContent='那時沒有攻略，我們就拿方格紙畫。你拿鉛筆，我按方向鍵。走錯的地方擦了又畫，紙薄得快要破掉。\n\n最後那一格，你寫了「下次再走」。後來地圖弄丟了，遊戲也早就打完。只有那四個字，我一直記得。';
+ pegStory.querySelector('button').textContent='闔上故事';
+ pegStory.showModal();
+});
+const memoryPicker=new T.Raycaster();
+const memoryPointer=new T.Vector2();
+playCanvas.addEventListener('click',event=>{
+ if(phase!=='maze'||rotateMaze.wasGesture||!memoryCard.visible||memoryDrop.age<.72||pegStory.open)return;
+ const bounds=playCanvas.getBoundingClientRect();
+ memoryPointer.set((event.clientX-bounds.left)/bounds.width*2-1,1-(event.clientY-bounds.top)/bounds.height*2);
+ memoryPicker.setFromCamera(memoryPointer,camera);
+ const cardHit=memoryPicker.intersectObject(memoryCard,true)[0];
+ if(!cardHit)return;
+ const wallHit=memoryPicker.intersectObjects(wallMeshes)[0];
+ if(wallHit&&wallHit.distance<cardHit.distance)return;
+ countKeepsake('遊戲記憶卡');
+ pegTitle.textContent='遊戲記憶卡';
+ pegText.textContent='放學後，我們輪流玩同一台主機。要吃飯時，你總說再等一下，存完檔就好。\n\n後來那張記憶卡不見了。再打開遊戲，畫面只剩「開始新遊戲」。我看著那行字，想不起我們上次是在哪裡存的檔。';
+ pegStory.querySelector('button').textContent='回到迷宮';
+ pegStory.showModal();
+});
+const knobScreen=new T.Vector3();
+function hitPlunger(event){
+ const bounds=playCanvas.getBoundingClientRect();
+ plungerKnob.getWorldPosition(knobScreen).project(camera);
+ const x=bounds.left+(knobScreen.x+1)*bounds.width/2;
+ const y=bounds.top+(1-knobScreen.y)*bounds.height/2;
+ return Math.hypot(event.clientX-x,event.clientY-y)<(event.pointerType==='touch'?49:37);
+}
+playCanvas.addEventListener('pointerdown',event=>{
+ if(phase!=='table'||storyPaused()||!event.isPrimary||event.button!==0)return;
+ if(tableWonAt===null&&marblesRemaining>0&&hitPlunger(event)){
+  plungerDrag={id:event.pointerId,y:event.clientY};
+ }else{
+  tableDrag={id:event.pointerId,x:event.clientX,tilt:tableTilt};
+ }
+ playCanvas.setPointerCapture(event.pointerId);
+});
+playCanvas.addEventListener('pointermove',event=>{
+ if(event.pointerId===plungerDrag?.id){
+  plungerPull=T.MathUtils.clamp((event.clientY-plungerDrag.y)/88,0,1);
+  return;
+ }
+ if(event.pointerId!==tableDrag?.id)return;
+ requestedTilt=T.MathUtils.clamp(tableDrag.tilt+(event.clientX-tableDrag.x)*.00145,-.105,.105);
+});
+function releaseTable(event){
+ if(event.pointerId===plungerDrag?.id){
+  const pull=plungerPull;
+  plungerDrag=null;
+  if(event.type==='pointerup'&&pull>.10)shoot(pull);
+  return;
+ }
+ if(event.pointerId!==tableDrag?.id)return;
+ tableDrag=null;
+ requestedTilt=0;
+}
+for(const type of ['pointerup','pointercancel','lostpointercapture'])playCanvas.addEventListener(type,releaseTable);
+function updatePlunger(dt){
+ if(!plungerDrag)plungerPull=T.MathUtils.damp(plungerPull,0,24,dt);
+ plungerKnob.position.y=handleRest-.29*plungerPull;
+ launcherRod.position.y=launcherY-.11-.23*plungerPull;
+ launcherSpring.scale.y=1-.47*plungerPull;
+ launcherSpring.position.y=launcherY*(1-launcherSpring.scale.y)-.13*plungerPull;
+ linkStart.set(launcherX,launcherRod.position.y-.47,launcherZ);
+ linkEnd.copy(plungerKnob.position);
+ linkDirection.subVectors(linkEnd,linkStart);
+ plungerLink.position.copy(linkStart).lerp(linkEnd,.5);
+ plungerLink.scale.y=linkDirection.length();
+ plungerLink.quaternion.setFromUnitVectors(plungerUp,linkDirection.normalize());
+}
+function updateTableTilt(dt){
+ tableTilt=T.MathUtils.damp(tableTilt,requestedTilt,tableDrag?11:6.5,dt);
+ board.quaternion.copy(boardQuaternion).multiply(tableRoll.setFromAxisAngle(tableRollAxis,tableTilt));
+}
+const controlArea=document.querySelector('footer');
+const fitCorner=new T.Vector3();
+const inverseTableView=tableView.clone().invert();
+function fitTable(){
+ const tangent=Math.tan(T.MathUtils.degToRad(camera.fov/2));
+ let distance=tableCamera.length();
+ for(const x of [-3.55,3.55])for(const y of [-4.35,4.35])for(const z of [-.34,.65]){
+  fitCorner.set(x,y,z).applyQuaternion(boardQuaternion).applyQuaternion(inverseTableView);
+  const vertical=Math.abs(fitCorner.y)/(tangent*.91);
+  const horizontal=Math.abs(fitCorner.x)/(tangent*camera.aspect*.92);
+  distance=Math.max(distance,fitCorner.z+Math.max(vertical,horizontal));
+ }
+ camera.position.copy(cameraOffset).applyQuaternion(tableView).multiplyScalar(distance).add(look);
+ camera.quaternion.copy(tableView);
+}
+function resize(){
+ const width=Math.max(1,innerWidth);
+ const height=Math.max(1,phase==='table'?Math.floor(controlArea.getBoundingClientRect().top-12):innerHeight);
+ renderer.setSize(width,height);
+ camera.aspect=width/height;
+ camera.fov=camera.aspect<.8?72:42;
+ camera.updateProjectionMatrix();
+ if(phase==='table')fitTable();
+}
+addEventListener('resize',resize);
+reset();
+rebuild(3);
+renderer.setAnimationLoop(ms=>{
+ now=ms;
+ const dt=Math.min(.045,(ms-(previous||ms))/1000);
+ previous=ms;
+ if(phase==='maze'){
+  if(pegStory.open){renderer.render(scene,camera);return;}
+  updateFireball(dt,ms*.001);
+  animateRuins(ms*.001,dt);
+  updateCritters(dt,ms*.001);
+  updateMemoryCard(dt);
+  updateHiddenP(dt,ms*.001);
+ }else if(phase==='reveal-map'){revealFinalMap((ms-phaseStart)/1000);}
+ else if(phase==='to-maze'){
+  const remaining=2.91-(ms-phaseStart)/1000;
+  if(remaining<=0)reset();
+  else rebuild(remaining);
+ }else if(phase==='table'){
+  if(!storyPaused()){
+   updateTableTilt(dt);
+   updatePlunger(dt);
+   updateBall(dt);
+  }
+  updateStoryPins(dt);
+  if(tableWonAt!==null&&ms-tableWonAt>1100&&!storyPaused())openMaze();
+ }
+ renderer.render(scene,camera);
+});
+</script>
+</body>
+</html>
