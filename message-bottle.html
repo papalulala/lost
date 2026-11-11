@@ -11,6 +11,12 @@
 @media(pointer:coarse){
  .scene-nav a{top:auto;bottom:calc(53px + env(safe-area-inset-bottom));transform:none;width:48px;height:48px}
 }
+#journal[open]{display:flex;flex-direction:column;overflow:hidden}
+.journal-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.journal-heading h2{font-size:clamp(22px,5vw,30px);margin:0}
+#journal-description{margin:10px 0}
+#notes{min-height:0;overflow:auto;overscroll-behavior:contain}
+#notes:focus-visible{outline:2px solid #8e735c;outline-offset:-2px}
 </style>
 <main><section class="panel"><small>失物宇宙</small><h1>失物留言</h1><p>你最記得哪一件失物？留下一個名字，再寫一段它的小故事。留言中的失物有機會被製作。</p>
 <form id="note-form"><label for="item">失物名稱</label><input id="item" required maxlength="30" autocomplete="off" placeholder="例如：草叢裡的珠寶皮箱"><label for="memory">失物的小故事</label><textarea id="memory" required maxlength="500" placeholder="你在哪裡遇見它？後來又去了哪裡？"></textarea><div class="buttons"><button type="submit">送出留言</button><button type="button" id="journal-open">翻開留言簿</button></div></form><p id="status" role="status"></p></section>
@@ -23,7 +29,7 @@
 }
 </style>
 <nav class="scene-nav" aria-label="場景切換"><a href="bamboo-night.html" aria-label="上一個場景，竹影深處"></a><a href="abandoned-playground.html" aria-label="下一個場景，廢棄遊樂場"></a></nav>
-<dialog id="journal"><h2>失物留言簿</h2><p>這些留言保存在目前的瀏覽器。</p><div id="notes"></div><form method="dialog"><button>闔上留言簿</button></form></dialog>
+<dialog id="journal" aria-labelledby="journal-title"><header class="journal-heading"><h2 id="journal-title">失物留言簿</h2><form method="dialog"><button>闔上留言簿</button></form></header><p id="journal-description">這些留言保存在目前的瀏覽器。</p><div id="notes" tabindex="0" role="region" aria-label="留言清單"></div></dialog>
 <script type="module">
 const get=id=>document.getElementById(id);
 const endpoint=document.querySelector('meta[name=messages-endpoint]').content.trim();
@@ -140,7 +146,7 @@ form.addEventListener('submit',async event=>{
 });
 count();
 if(shared){
- journal.querySelector('h2 + p').textContent='這裡收錄最近 '+publicMessageLimit+' 則公開留言。';
+ get('journal-description').textContent='這裡收錄最近 '+publicMessageLimit+' 則公開留言。';
  const notice=document.createElement('p');
  notice.textContent='送出後，所有訪客都能看到這則留言。';
  form.prepend(notice);
