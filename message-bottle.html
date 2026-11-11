@@ -124,6 +124,7 @@ form.addEventListener('submit',async event=>{
  if(!pending||pending.item!==item||pending.story!==story)pending={id:crypto.randomUUID(),item,story};
  try{
   const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(pending)});
+  if(response.status===422){get('status').textContent='';return;}
   if(!response.ok)throw Error(response.status);
   const {message}=await response.json();
   if(!entries.some(entry=>entry.id===message.id))applyEntries([...entries,{...message,glyphs}].slice(-publicMessageLimit));
