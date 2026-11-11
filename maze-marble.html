@@ -1717,7 +1717,7 @@ function scoreMarble(b){
  settledMarbles.push({mesh,bin:b.bin});
  binHits[b.bin]++;
  showWordProgress();
- const complete=wordLetters.every(letter=>binHits[binLetters.indexOf(letter.textContent)]>=3);
+ const complete=wordLetters.every(letter=>binHits[binLetters.indexOf(letter.textContent)]>=1);
  if(complete&&tableWonAt===null){
   tableWonAt=now;
   launch.disabled=true;
