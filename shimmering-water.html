@@ -20,7 +20,7 @@ nav a::after{content:"";border-block:8px solid transparent;border-left:12px soli
  #radio-panel{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);margin:0;width:min(280px,calc(100vw - 32px));max-height:48dvh;overflow:auto}
 }
 </style>
-<header><small>失物宇宙</small><h1>波光粼粼的水面</h1></header><footer id="hint" role="status">正在載入水面…</footer>
+<header><small>失物宇宙</small><h1>波光粼粼的水面</h1><span id="water-lost-count" aria-live="polite">失物 0 / 1</span></header><footer id="hint" role="status">正在載入水面…</footer>
 <aside id="radio-ui" aria-label="棧橋收音機">
  <button id="radio-open" type="button" aria-controls="radio-panel" aria-expanded="false">棧橋收音機</button>
  <div id="radio-panel" hidden>
@@ -226,8 +226,10 @@ try{
   const o=new T.Mesh(new T.CylinderGeometry(r*.72,r,d.length(),7),material);
   o.position.copy(p.add(q).multiplyScalar(.5));o.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),d.normalize());scene.add(o);
  }
+ const dockBounds=new T.Box3();
  for(let i=0;i<14;i++){
   const plank=box([-3.65,.25,4.8-i*.36],[1.94,.13,.332],wood[i%4]);plank.rotation.y=.018*Math.sin(i*2.21);
+  dockBounds.expandByObject(plank);
  }
  for(const x of [-4.46,-2.85]){
   box([x,.10,2.46],[.13,.15,5.05],wood[2]);
@@ -328,18 +330,31 @@ try{
  const boat=new T.Group();
  boat.visible=false;
  scene.add(boat);
- const boatGeometry=new T.BufferGeometry();
- const bow=[0,.13,-.67],stern=[0,.13,.67],left=[-.26,.12,0],right=[.26,.12,0];
- const keel=[0,-.13,0],fold=[0,.37,0];
- boatGeometry.setAttribute('position',new T.Float32BufferAttribute([
-  ...bow,...left,...keel,...left,...stern,...keel,
-  ...stern,...right,...keel,...right,...bow,...keel,
-  ...bow,...left,...fold,...left,...stern,...fold,
-  ...stern,...right,...fold,...right,...bow,...fold
- ],3));
- boatGeometry.computeVertexNormals();
- const paper=new T.MeshStandardMaterial({color:0xece2ca,roughness:.96,side:T.DoubleSide});
- boat.add(new T.Mesh(boatGeometry,paper));
+ const bow=[0,.21,-.67],stern=[0,.21,.67];
+ const leftBow=[-.25,.12,-.27],leftStern=[-.25,.12,.27];
+ const rightBow=[.25,.12,-.27],rightStern=[.25,.12,.27];
+ const frontKeel=[0,-.13,-.28],rearKeel=[0,-.13,.28];
+ const sailTop=[0,.40,0];
+ function paperFaces(color,triangles){
+  const geometry=new T.BufferGeometry();
+  geometry.setAttribute('position',new T.Float32BufferAttribute(triangles.flat(2),3));
+  geometry.computeVertexNormals();
+  boat.add(new T.Mesh(geometry,new T.MeshStandardMaterial({color,roughness:.96,side:T.DoubleSide})));
+ }
+ paperFaces(0xeee2cc,[
+  [bow,leftBow,frontKeel],[leftBow,leftStern,frontKeel],[leftStern,rearKeel,frontKeel],[leftStern,stern,rearKeel],
+  [bow,frontKeel,rightBow],[rightBow,frontKeel,rightStern],[rightStern,frontKeel,rearKeel],[rightStern,rearKeel,stern]
+ ]);
+ paperFaces(0xd8c8ad,[
+  [bow,leftBow,[-.20,.057,-.25]],[leftBow,leftStern,[-.20,.057,-.25]],[leftStern,[-.20,.057,.25],[-.20,.057,-.25]],[leftStern,stern,[-.20,.057,.25]],
+  [bow,rightBow,[.20,.057,-.25]],[rightBow,rightStern,[.20,.057,-.25]],[rightStern,[.20,.057,.25],[.20,.057,-.25]],[rightStern,stern,[.20,.057,.25]]
+ ]);
+ paperFaces(0xf8eedc,[
+  [sailTop,frontKeel,[-.085,-.07,0]],[sailTop,[-.085,-.07,0],rearKeel],
+  [sailTop,[.085,-.07,0],frontKeel],[sailTop,rearKeel,[.085,-.07,0]]
+ ]);
+ const boatRadius=.72;
+ const dockEdge=dockBounds.max.x+boatRadius;
  const boatStory=document.getElementById('boat-story');
  const fallAt=12,fallDuration=1.55;
  let splashed=false;
@@ -348,7 +363,8 @@ try{
   if(elapsed<0)return;
   boat.visible=true;
   const afloat=Math.max(0,elapsed-fallDuration);
-  boat.position.x=-2.2+.65*Math.sin(afloat*.19);
+  const driftX=-1.55-.75*Math.sin(afloat*.32);
+  boat.position.x=dockEdge+Math.abs(driftX-dockEdge);
   boat.position.z=2.4+.28*Math.sin(afloat*.27);
   if(elapsed<fallDuration){
    const progress=elapsed/fallDuration;
@@ -381,6 +397,7 @@ try{
    return;
   }
   if(boat.visible&&splashed&&ray.intersectObject(boat,true).some(({point})=>point.y>=0)){
+   document.getElementById('water-lost-count').textContent='失物 1 / 1';
    boatStory.showModal();
    return;
   }

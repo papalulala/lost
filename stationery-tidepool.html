@@ -151,6 +151,73 @@ const loader=new GLTFLoader();
 const load=id=>loader.parseAsync(Uint8Array.from(atob($(id).textContent.trim()),c=>c.charCodeAt(0)).buffer,'');
 const assetIds=["losteraser","holycardtin","jewelrysuitcase"]; const [station,...assets]=await Promise.all(['station',...assetIds].map(load));
 scene.add(station.scene);
+const shopStock=new T.Group();
+station.scene.add(shopStock);
+const stockBox=new T.BoxGeometry(1,1,1);
+const pencilBody=new T.CylinderGeometry(.009,.009,1,6);
+const pencilPoint=new T.ConeGeometry(.009,.035,6);
+const stockPalette=[0xb98779,0x708b84,0xb39760,0x7a8098,0xd2bd9c];
+const stockColors=stockPalette.map(color=>new T.MeshStandardMaterial({color,roughness:.83}));
+const pages=new T.MeshStandardMaterial({color:0xddd0b2,roughness:.96});
+const woodRack=new T.MeshStandardMaterial({color:0x785b4f,roughness:.91});
+const inkCap=new T.MeshStandardMaterial({color:0x40383f,roughness:.67});
+function stockPart(geometry,material,x,y,z,w,h,d){
+ const part=new T.Mesh(geometry,material);
+ part.position.set(x,y,z);
+ part.scale.set(w,h,d);
+ part.receiveShadow=true;
+ shopStock.add(part);
+ return part;
+}
+for(const y of [.46,.96,1.46,1.95]){
+ for(let column=0;column<8;column++){
+  const x=-4.28+column*.38;
+  const color=stockColors[(column+Math.round(y*4))%stockColors.length];
+  const depth=-1.895+Math.sin(column*2.1+y)*.025;
+  const width=.20+(column%3)*.026;
+  if((column+Math.round(y*4))%3===0){
+   for(let book=0;book<3;book++){
+    const level=y+.061+book*.046;
+    stockPart(stockBox,pages,x,level,depth,width,.032,.17);
+    stockPart(stockBox,color,x,level+.019,depth,width+.009,.008,.177);
+   }
+  }else{
+   const height=.088+(column%4)*.019;
+   stockPart(stockBox,color,x,y+.048+height/2,depth,width,height,.155);
+   stockPart(stockBox,pages,x,y+.072,depth+.079,width*.55,.031,.004);
+  }
+ }
+}
+const pencilTrayX=-1.93,pencilTrayZ=.03;
+stockPart(stockBox,woodRack,pencilTrayX,1.105,pencilTrayZ,.58,.05,.31);
+for(const offset of [-.15,.15])stockPart(stockBox,woodRack,pencilTrayX,1.14,pencilTrayZ+offset,.58,.06,.022);
+for(let i=0;i<9;i++){
+ const x=pencilTrayX-.23+i*.054;
+ const z=pencilTrayZ+Math.sin(i*2)*.023;
+ const color=stockColors[i%stockColors.length];
+ stockPart(pencilBody,color,x,1.143,z,1,.205,1).rotation.x=Math.PI/2;
+ stockPart(pencilPoint,pages,x,1.143,z+.119,1,1,1).rotation.x=Math.PI/2;
+}
+const inkGlass=new T.MeshStandardMaterial({color:0x405962,roughness:.26});
+for(let i=0;i<3;i++){
+ const x=-.55+i*.13,z=-.18+(i%2)*.028;
+ stockPart(stockBox,inkGlass,x,1.14,z,.09,.12,.077);
+ stockPart(stockBox,inkCap,x,1.211,z,.066,.025,.061);
+}
+const labels=document.createElement('canvas');
+labels.width=256;labels.height=112;
+const labelInk=labels.getContext('2d');
+labelInk.fillStyle='#dfcda2';labelInk.fillRect(0,0,256,112);
+labelInk.strokeStyle='#906951';labelInk.strokeRect(7,7,242,98);
+labelInk.fillStyle='#594134';labelInk.textAlign='center';labelInk.font='34px serif';
+labelInk.fillText('鉛筆・練習簿',128,52);
+labelInk.font='20px serif';labelInk.fillText('单件零售',128,85);
+const labelTexture=new T.CanvasTexture(labels);
+labelTexture.colorSpace=T.SRGBColorSpace;
+const shelfLabel=new T.Mesh(new T.PlaneGeometry(.48,.21),new T.MeshStandardMaterial({map:labelTexture,roughness:.92}));
+shelfLabel.position.set(-3.62,2.58,-1.87);
+shopStock.add(shelfLabel);
+
 const surfaceProfiles={
  'Warm chestnut':'wood','Warm timber':'wood','Chestnut frame':'wood','Walnut':'wood','Pale oak':'wood',
  'Rail steel':'metal','Painted iron':'metal','Blue grey steel':'metal','Painted drawer blue':'paint',
