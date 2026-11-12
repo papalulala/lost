@@ -38,6 +38,7 @@ nav a::after{content:"";border-block:8px solid transparent;border-left:12px soli
 }
 </style>
 <nav aria-label="場景切換"><a href="blackout-stairwell.html" aria-label="上一個場景，停在七樓的電梯" title="停在七樓的電梯"></a><a href="underwater-world.html" aria-label="下一個場景，夢境" title="夢境"></a></nav>
+<dialog id="boat-story" style="max-width:min(28rem,85vw);border:1px solid #8f8777;background:#f2eadb;color:#383b3b;padding:1.4rem;font:inherit"><h2>沒寄出的紙船</h2><p>那天雨停了，我把寫給你的信折成一艘船。水溝很淺，我還跟著跑了一小段。到轉角，船進了橋底。後來我們見過幾次，我始終沒跟你說，那封信其實只有一句：明天還一起玩嗎？</p><form method="dialog"><button>回到水面</button></form></dialog>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.179.1/build/three.module.js"}}</script>
 <script type="module">
 const hint=document.getElementById('hint');
@@ -324,6 +325,46 @@ try{
  const ray=new T.Raycaster(),pointer=new T.Vector2(),hit=new T.Vector3();
  const waterPlane=new T.Plane(new T.Vector3(0,1,0),0);
  let start=null,next=0;
+ const boat=new T.Group();
+ boat.visible=false;
+ scene.add(boat);
+ const boatGeometry=new T.BufferGeometry();
+ const bow=[0,.13,-.67],stern=[0,.13,.67],left=[-.26,.12,0],right=[.26,.12,0];
+ const keel=[0,-.13,0],fold=[0,.37,0];
+ boatGeometry.setAttribute('position',new T.Float32BufferAttribute([
+  ...bow,...left,...keel,...left,...stern,...keel,
+  ...stern,...right,...keel,...right,...bow,...keel,
+  ...bow,...left,...fold,...left,...stern,...fold,
+  ...stern,...right,...fold,...right,...bow,...fold
+ ],3));
+ boatGeometry.computeVertexNormals();
+ const paper=new T.MeshStandardMaterial({color:0xece2ca,roughness:.96,side:T.DoubleSide});
+ boat.add(new T.Mesh(boatGeometry,paper));
+ const boatStory=document.getElementById('boat-story');
+ const fallAt=12,fallDuration=1.55;
+ let splashed=false;
+ function animateBoat(t){
+  const elapsed=t-fallAt;
+  if(elapsed<0)return;
+  boat.visible=true;
+  const afloat=Math.max(0,elapsed-fallDuration);
+  boat.position.x=-2.2+.65*Math.sin(afloat*.19);
+  boat.position.z=2.4+.28*Math.sin(afloat*.27);
+  if(elapsed<fallDuration){
+   const progress=elapsed/fallDuration;
+   boat.position.y=8*(1-progress*progress);
+   boat.rotation.set(.55*Math.sin(elapsed*4),elapsed*1.3,.24*Math.cos(elapsed*3));
+   return;
+  }
+  if(!splashed){
+   splashed=true;
+   pulses[next].set(boat.position.x,boat.position.z,t,0);
+   next=(next+1)%pulses.length;
+  }
+  boat.position.y=.045*Math.cos(afloat*2.2)-.19*Math.pow(Math.max(0,Math.sin(afloat*.81)),4);
+  boat.rotation.set(.16*Math.sin(afloat*1.64),fallDuration*1.3+afloat*.12,.21*Math.sin(afloat*1.25));
+ }
+
  renderer.domElement.addEventListener('pointerdown',e=>{if(e.isPrimary)start=[e.clientX,e.clientY];});
  renderer.domElement.addEventListener('pointercancel',()=>start=null);
  renderer.domElement.addEventListener('pointerup',e=>{
@@ -339,6 +380,10 @@ try{
    if(radioHit.object.parent===knob)tune(audio.paused?stationIndex:stationIndex+1,true);
    return;
   }
+  if(boat.visible&&splashed&&ray.intersectObject(boat,true).some(({point})=>point.y>=0)){
+   boatStory.showModal();
+   return;
+  }
   if(ray.ray.intersectPlane(waterPlane,hit)&&hit.length()<75){
    pulses[next].set(hit.x,hit.z,time.value,0);next=(next+1)%pulses.length;
   }
@@ -346,6 +391,6 @@ try{
  function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}
  addEventListener('resize',resize);
  hint.textContent='拖曳或雙指旋轉 · 點水面激起漣漪 · 點收音機轉台';
- let startTime; renderer.setAnimationLoop(ms=>{startTime??=ms;time.value=(ms-startTime)*.001;updateDaylight(time.value);renderer.render(scene,camera);});
+ let startTime; renderer.setAnimationLoop(ms=>{startTime??=ms;time.value=(ms-startTime)*.001;updateDaylight(time.value);animateBoat(time.value);renderer.render(scene,camera);});
 }catch(error){hint.textContent='水面載入失敗，請確認連線後重新整理。';console.error(error);}
 </script></html>
