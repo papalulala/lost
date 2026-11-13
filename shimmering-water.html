@@ -38,6 +38,7 @@ nav a::after{content:"";border-block:8px solid transparent;border-left:12px soli
 }
 </style>
 <style id="route-map-style">
+@media (min-width:641px) and (pointer:fine){#radio-ui{right:calc(max(10px,env(safe-area-inset-right)) + 9rem);top:max(10px,env(safe-area-inset-top))}}
 nav[aria-label="場景切換"] a{display:flex;align-items:center;justify-content:center;gap:6px;width:auto;min-width:44px;max-width:calc(50vw - 14px);padding:0 9px;font-size:clamp(11px,3vw,14px);line-height:1.25;text-align:center;text-decoration:none}
 nav[aria-label="場景切換"] a::after{flex:none}
 nav[aria-label="場景切換"] a:first-child::after{order:-1}
