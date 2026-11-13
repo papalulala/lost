@@ -28,7 +28,18 @@
  nav[aria-label="場景切換"] a:last-child{right:max(8px,env(safe-area-inset-right))}
 }
 </style>
-<nav class="scene-nav" aria-label="場景切換"><a href="bamboo-night.html" aria-label="上一個場景，竹影深處"></a><a href="abandoned-playground.html" aria-label="下一個場景，廢棄遊樂場"></a></nav>
+<style id="route-map-style">
+nav[aria-label="場景切換"] a{display:flex;align-items:center;justify-content:center;gap:6px;width:auto;min-width:44px;max-width:calc(50vw - 14px);padding:0 9px;font-size:clamp(11px,3vw,14px);line-height:1.25;text-align:center;text-decoration:none}
+nav[aria-label="場景切換"] a::after{flex:none}
+nav[aria-label="場景切換"] a:first-child::after{order:-1}
+.route-map{position:fixed;top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right));z-index:12;color:#493a2b;font-size:13px;line-height:1.4}
+.route-map summary,.route-map ul{background:#fff5df;border:1px solid #78654e88;border-radius:8px;box-shadow:0 3px 12px #30291626}
+.route-map summary{padding:10px;cursor:pointer;width:max-content;margin-left:auto}
+.route-map ul{position:absolute;right:0;top:calc(100% + 5px);width:min(220px,calc(100vw - 24px));max-height:calc(100dvh - 72px);overflow:auto;list-style:none;margin:0;padding:5px}
+.route-map li a,.route-map li span{display:block;padding:9px 12px;color:inherit;text-decoration:none;border-radius:5px}
+.route-map li a:hover,.route-map li span{background:#f2dfb5}
+.route-map :focus-visible{outline:2px solid #8d582e;outline-offset:-2px}
+</style><nav class="scene-nav" aria-label="場景切換"><a href="bamboo-night.html" aria-label="上一個場景，竹影深處"><span>竹影深處</span></a><a href="abandoned-playground.html" aria-label="下一個場景，廢棄遊樂場"><span>廢棄遊樂場</span></a></nav><details class="route-map"><summary>月台路線圖</summary><ul><li><a href="index.html">回失物轉運站</a></li><li><a href="train-window.html">火車上的窗景</a></li><li><a href="ruined-watch-shop.html">停擺的修錶店</a></li><li><a href="maze-marble.html">影子的兩端</a></li><li><a href="blackout-stairwell.html">停在七樓的電梯</a></li><li><a href="shimmering-water.html">波光粼粼的水面</a></li><li><a href="underwater-world.html">夢境</a></li><li><a href="stationery-tidepool.html">放學後的舊文具店</a></li><li><a href="bamboo-night.html">竹影深處</a></li><li><span aria-current="page">失物留言（目前所在）</span></li><li><a href="abandoned-playground.html">廢棄遊樂場</a></li></ul></details>
 <dialog id="journal" aria-labelledby="journal-title"><header class="journal-heading"><h2 id="journal-title">失物留言簿</h2><form method="dialog"><button>闔上留言簿</button></form></header><p id="journal-description">這些留言保存在目前的瀏覽器。</p><div id="notes" tabindex="0" role="region" aria-label="留言清單"></div></dialog>
 <script type="module">
 const get=id=>document.getElementById(id);

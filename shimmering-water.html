@@ -37,7 +37,18 @@ nav a::after{content:"";border-block:8px solid transparent;border-left:12px soli
  nav[aria-label="場景切換"] a:last-child{right:max(8px,env(safe-area-inset-right))}
 }
 </style>
-<nav aria-label="場景切換"><a href="blackout-stairwell.html" aria-label="上一個場景，停在七樓的電梯" title="停在七樓的電梯"></a><a href="underwater-world.html" aria-label="下一個場景，夢境" title="夢境"></a></nav>
+<style id="route-map-style">
+nav[aria-label="場景切換"] a{display:flex;align-items:center;justify-content:center;gap:6px;width:auto;min-width:44px;max-width:calc(50vw - 14px);padding:0 9px;font-size:clamp(11px,3vw,14px);line-height:1.25;text-align:center;text-decoration:none}
+nav[aria-label="場景切換"] a::after{flex:none}
+nav[aria-label="場景切換"] a:first-child::after{order:-1}
+.route-map{position:fixed;top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right));z-index:12;color:#493a2b;font-size:13px;line-height:1.4}
+.route-map summary,.route-map ul{background:#fff5df;border:1px solid #78654e88;border-radius:8px;box-shadow:0 3px 12px #30291626}
+.route-map summary{padding:10px;cursor:pointer;width:max-content;margin-left:auto}
+.route-map ul{position:absolute;right:0;top:calc(100% + 5px);width:min(220px,calc(100vw - 24px));max-height:calc(100dvh - 72px);overflow:auto;list-style:none;margin:0;padding:5px}
+.route-map li a,.route-map li span{display:block;padding:9px 12px;color:inherit;text-decoration:none;border-radius:5px}
+.route-map li a:hover,.route-map li span{background:#f2dfb5}
+.route-map :focus-visible{outline:2px solid #8d582e;outline-offset:-2px}
+</style><nav aria-label="場景切換"><a href="blackout-stairwell.html" aria-label="上一個場景，停在七樓的電梯" title="停在七樓的電梯"><span>停在七樓的電梯</span></a><a href="underwater-world.html" aria-label="下一個場景，夢境" title="夢境"><span>夢境</span></a></nav><details class="route-map"><summary>月台路線圖</summary><ul><li><a href="index.html">回失物轉運站</a></li><li><a href="train-window.html">火車上的窗景</a></li><li><a href="ruined-watch-shop.html">停擺的修錶店</a></li><li><a href="maze-marble.html">影子的兩端</a></li><li><a href="blackout-stairwell.html">停在七樓的電梯</a></li><li><span aria-current="page">波光粼粼的水面（目前所在）</span></li><li><a href="underwater-world.html">夢境</a></li><li><a href="stationery-tidepool.html">放學後的舊文具店</a></li><li><a href="bamboo-night.html">竹影深處</a></li><li><a href="message-bottle.html">失物留言</a></li><li><a href="abandoned-playground.html">廢棄遊樂場</a></li></ul></details>
 <dialog id="boat-story" style="max-width:min(28rem,85vw);border:1px solid #8f8777;background:#f2eadb;color:#383b3b;padding:1.4rem;font:inherit"><h2>沒寄出的紙船</h2><p>那天雨停了，我把寫給你的信折成一艘船。水溝很淺，我還跟著跑了一小段。到轉角，船進了橋底。後來我們見過幾次，我始終沒跟你說，那封信其實只有一句：明天還一起玩嗎？</p><form method="dialog"><button>回到水面</button></form></dialog>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.179.1/build/three.module.js"}}</script>
 <script type="module">

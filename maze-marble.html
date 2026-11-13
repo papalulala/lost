@@ -14,7 +14,7 @@ body{margin:0;min-height:100vh;min-height:100dvh;background:
 canvas{display:block;touch-action:none}
 header,footer{position:fixed;z-index:1;text-shadow:0 2px 10px #211713}
 header{top:max(16px,env(safe-area-inset-top));left:5vw;pointer-events:none}
-h1{font-weight:500;font-size:clamp(24px,4.7vw,46px);margin:.24em 0}
+h1{font-family:Georgia,"Noto Serif TC",serif;font-weight:500;font-size:clamp(24px,4.7vw,46px);margin:.24em 0}
 footer{bottom:max(14px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);text-align:center;width:min(92vw,570px)}
 button{font:inherit;min-width:48px;min-height:44px;border:1px solid #c19760;border-radius:6px;background:#342720;color:#fff0ce;cursor:pointer}
 button:focus-visible{outline:2px solid #f4bd64;outline-offset:2px}
@@ -53,7 +53,18 @@ button:focus-visible{outline:2px solid #f4bd64;outline-offset:2px}
 </style>
 </head>
 <body>
-<nav class="scene-nav" aria-label="場景切換"><a href="ruined-watch-shop.html" aria-label="上一個場景，停擺的修錶店" title="停擺的修錶店"></a><a href="blackout-stairwell.html" aria-label="下一個場景，停在七樓的電梯" title="停在七樓的電梯"></a></nav>
+<style id="route-map-style">
+nav[aria-label="場景切換"] a{display:flex;align-items:center;justify-content:center;gap:6px;width:auto;min-width:44px;max-width:calc(50vw - 14px);padding:0 9px;font-size:clamp(11px,3vw,14px);line-height:1.25;text-align:center;text-decoration:none}
+nav[aria-label="場景切換"] a::after{flex:none}
+nav[aria-label="場景切換"] a:first-child::after{order:-1}
+.route-map{position:fixed;top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right));z-index:12;color:#493a2b;font-size:13px;line-height:1.4}
+.route-map summary,.route-map ul{background:#fff5df;border:1px solid #78654e88;border-radius:8px;box-shadow:0 3px 12px #30291626}
+.route-map summary{padding:10px;cursor:pointer;width:max-content;margin-left:auto}
+.route-map ul{position:absolute;right:0;top:calc(100% + 5px);width:min(220px,calc(100vw - 24px));max-height:calc(100dvh - 72px);overflow:auto;list-style:none;margin:0;padding:5px}
+.route-map li a,.route-map li span{display:block;padding:9px 12px;color:inherit;text-decoration:none;border-radius:5px}
+.route-map li a:hover,.route-map li span{background:#f2dfb5}
+.route-map :focus-visible{outline:2px solid #8d582e;outline-offset:-2px}
+</style><nav class="scene-nav" aria-label="場景切換"><a href="ruined-watch-shop.html" aria-label="上一個場景，停擺的修錶店" title="停擺的修錶店"><span>停擺的修錶店</span></a><a href="blackout-stairwell.html" aria-label="下一個場景，停在七樓的電梯" title="停在七樓的電梯"><span>停在七樓的電梯</span></a></nav><details class="route-map"><summary>月台路線圖</summary><ul><li><a href="index.html">回失物轉運站</a></li><li><a href="train-window.html">火車上的窗景</a></li><li><a href="ruined-watch-shop.html">停擺的修錶店</a></li><li><span aria-current="page">影子的兩端（目前所在）</span></li><li><a href="blackout-stairwell.html">停在七樓的電梯</a></li><li><a href="shimmering-water.html">波光粼粼的水面</a></li><li><a href="underwater-world.html">夢境</a></li><li><a href="stationery-tidepool.html">放學後的舊文具店</a></li><li><a href="bamboo-night.html">竹影深處</a></li><li><a href="message-bottle.html">失物留言</a></li><li><a href="abandoned-playground.html">廢棄遊樂場</a></li></ul></details>
 <header><small>失物宇宙</small><h1>影子的兩端</h1><span id="lost-count" aria-live="polite">失物 0 / 5</span> <span id="table-score" hidden aria-live="polite"></span></header>
 <footer>
 <p id="status" aria-live="polite">拖曳旋轉迷宮，找出牆上和地面的四個數字。</p>
