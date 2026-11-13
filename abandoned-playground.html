@@ -349,9 +349,32 @@ r.domElement.addEventListener('pointerup',e=>{
 $('story').addEventListener('close',()=>controls.enabled=true);
 function frame(){camera.aspect=innerWidth/innerHeight;camera.fov=Math.min(90,Math.max(39,2*Math.atan(Math.tan(39*Math.PI/360)/camera.aspect)*180/Math.PI));camera.updateProjectionMatrix();r.setSize(innerWidth,innerHeight);} addEventListener("resize",frame);frame();
 $('hint').textContent='拖曳旋轉 · 滾輪縮放 · 雙指旋轉／縮放 · 點失物讀故事';
+const swingPivot=new T.Group();
+swingPivot.position.set(2.92,2,-3.96);
+scene.add(swingPivot);
+const swingParts=[];
+station.scene.traverse(node=>{if(/^Swingchainlink|^Lastswingseat/i.test(node.name.replaceAll('_','')))swingParts.push(node);});
+swingParts.forEach(part=>swingPivot.attach(part));
+const ribbonShape=new T.PlaneGeometry(.075,.47,1,12);
+const ribbon=new T.Mesh(ribbonShape,new T.MeshStandardMaterial({color:0xbb735d,side:T.DoubleSide,roughness:.9}));
+ribbon.position.set(-.24,-.48,.05);
+swingPivot.add(ribbon);
+function updateSwing(time){
+ const cycle=time%16;
+ const gust=Math.sin(Math.PI*T.MathUtils.clamp(cycle/4,0,1));
+ const lag=Math.max(0,cycle-.38);
+ swingPivot.rotation.x=.19*Math.sin(lag*3.2)*Math.min(lag*2,1)*Math.exp(-lag*.46);
+ const cloth=ribbonShape.attributes.position;
+ for(let i=0;i<cloth.count;i++){
+  const slack=(.235-cloth.getY(i))/.47;
+  cloth.setZ(i,gust*slack*(.24+.12*Math.sin(time*8-slack*6)));
+ }
+ cloth.needsUpdate=true;
+ ribbonShape.computeVertexNormals();
+}
 r.shadowMap.needsUpdate=true;
 r.setAnimationLoop(ms=>{
- const t=ms/1000;skyTime.value=t;
+ const t=ms/1000;skyTime.value=t;updateSwing(t);
  fireflies.forEach(({sprite,zone,phase,speed,radius,size})=>{
   const a=t*speed+phase;
   const pulse=Math.max(0,Math.sin(t*(1.15+speed)+phase*1.6));

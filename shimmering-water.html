@@ -369,15 +369,24 @@ try{
  const dockEdge=dockBounds.max.x+boatRadius;
  const boatStory=document.getElementById('boat-story');
  const fallAt=12,fallDuration=1.55;
- let splashed=false;
+ let splashed=false,radioRippleAt=-Infinity;
+ document.getElementById('radio-open').addEventListener('click',()=>{
+  if(boat.visible&&document.getElementById('radio-open').getAttribute('aria-expanded')==='true'){
+   radioRippleAt=time.value;
+   pulses[next].set(boat.position.x,boat.position.z,time.value,0);
+   next=(next+1)%pulses.length;
+  }
+ });
  function animateBoat(t){
   const elapsed=t-fallAt;
   if(elapsed<0)return;
   boat.visible=true;
   const afloat=Math.max(0,elapsed-fallDuration);
-  const driftX=-1.55-.75*Math.sin(afloat*.32);
-  boat.position.x=dockEdge+Math.abs(driftX-dockEdge);
-  boat.position.z=2.4+.28*Math.sin(afloat*.27);
+
+  const orbit=afloat*.18;
+  const push=t-radioRippleAt;
+  boat.position.x=-3.65+(dockEdge+3.65)*Math.cos(orbit)+(push<2?.18*Math.sin(Math.PI*push/2):0);
+  boat.position.z=.28+3.4*Math.sin(orbit);
   if(elapsed<fallDuration){
    const progress=elapsed/fallDuration;
    boat.position.y=8*(1-progress*progress);
