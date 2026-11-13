@@ -352,22 +352,51 @@ $('hint').textContent='拖曳旋轉 · 滾輪縮放 · 雙指旋轉／縮放 · 
 const swingPivot=new T.Group();
 swingPivot.position.set(2.92,2,-3.96);
 scene.add(swingPivot);
-const swingParts=[];
-station.scene.traverse(node=>{if(/^Swingchainlink|^Lastswingseat/i.test(node.name.replaceAll('_','')))swingParts.push(node);});
-swingParts.forEach(part=>swingPivot.attach(part));
-const ribbonShape=new T.PlaneGeometry(.075,.47,1,12);
-const ribbon=new T.Mesh(ribbonShape,new T.MeshStandardMaterial({color:0xbb735d,side:T.DoubleSide,roughness:.9}));
-ribbon.position.set(-.24,-.48,.05);
+const oldChain=[];
+station.scene.traverse(node=>{
+ const name=node.name.replaceAll('_','');
+ if(/^Swingchainlink/i.test(name))oldChain.push(node);
+ if(/^Lastswingseat/i.test(name))oldChain.push(node);
+});
+for(const part of oldChain){
+ if(/^Last/i.test(part.name))swingPivot.attach(part);
+ else part.removeFromParent();
+}
+class ChainLinkPath extends T.Curve {
+ getPoint(t,target=new T.Vector3()){
+  const angle=t*Math.PI*2;
+  return target.set(.042*Math.cos(angle),.068*Math.sin(angle),0);
+ }
+}
+const linkGeometry=new T.TubeGeometry(new ChainLinkPath(),28,.010,7,true);
+const iron=new T.MeshStandardMaterial({color:0x70645a,metalness:.67,roughness:.57});
+for(const x of [-.24,.24]){
+ for(let i=0;i<14;i++){
+  const link=new T.Mesh(linkGeometry,iron);
+  link.position.set(x,-.047-i*.086,0);
+  link.rotation.y=(i%2)*Math.PI/2;
+  swingPivot.add(link);
+ }
+}
+const ribbonShape=new T.PlaneGeometry(.135,.63,2,16);
+const ribbon=new T.Mesh(ribbonShape,new T.MeshStandardMaterial({color:0xd68b70,side:T.DoubleSide,roughness:.87}));
+ribbon.position.set(-.24,-.49,.045);
+ribbon.frustumCulled=false;
 swingPivot.add(ribbon);
+const quietSwing=matchMedia('(prefers-reduced-motion: reduce)');
+let swingStart;
 function updateSwing(time){
- const cycle=time%16;
- const gust=Math.sin(Math.PI*T.MathUtils.clamp(cycle/4,0,1));
- const lag=Math.max(0,cycle-.38);
- swingPivot.rotation.x=.19*Math.sin(lag*3.2)*Math.min(lag*2,1)*Math.exp(-lag*.46);
+ swingStart??=time;
+ const cycle=(time-swingStart)%11;
+ const lag=Math.max(0,cycle-.58);
+ const motion=quietSwing.matches?.35:1;
+ const gust=Math.sin(Math.PI*T.MathUtils.clamp(cycle/4.8,0,1))**.65;
+ swingPivot.rotation.x=motion*.58*Math.sin(lag*3.05)*Math.min(lag*2.5,1)*Math.exp(-lag*.32);
  const cloth=ribbonShape.attributes.position;
  for(let i=0;i<cloth.count;i++){
-  const slack=(.235-cloth.getY(i))/.47;
-  cloth.setZ(i,gust*slack*(.24+.12*Math.sin(time*8-slack*6)));
+  const slack=(.315-cloth.getY(i))/.63;
+  cloth.setX(i,(i%3-1)*.0675+motion*gust*slack**2*.34);
+  cloth.setZ(i,motion*gust*slack*(.64+.23*Math.sin(time*8-slack*6)));
  }
  cloth.needsUpdate=true;
  ribbonShape.computeVertexNormals();
