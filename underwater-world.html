@@ -891,6 +891,39 @@ function updateForestTransition(now){
   forestToggle.disabled=plantingStart!==null;
  }
 }
+const flock=document.createElement('div');
+flock.id='dream-flock';
+flock.setAttribute('aria-hidden','true');
+Object.assign(flock.style,{position:'fixed',inset:'0',overflow:'hidden',pointerEvents:'none',zIndex:'2'});
+document.body.append(flock);
+const creatures=Array.from({length:5},(_,i)=>{
+ const figure=document.createElement('div');
+ Object.assign(figure.style,{position:'absolute',width:'clamp(15px,2.5vw,29px)',color:'#fff',willChange:'transform'});
+ figure.innerHTML='<svg viewBox="0 0 40 24" fill="currentColor"><g class="fish"><path d="M6 12Q18-1 33 12Q18 25 6 12Z"/><path d="M11 12 1 4V20Z"/></g><g class="bird"><path d="M20 15Q11 12 1 4Q6 16 17 18L20 21 23 18Q34 16 39 4Q29 12 20 15Z"/></g></svg>';
+ flock.append(figure);
+ return {figure,fish:figure.querySelector('.fish'),bird:figure.querySelector('.bird')};
+});
+function updateDreamFlock(time,blend){
+ const travel=reduceMotion.matches?0:time;
+ const morph=T.MathUtils.smoothstep(blend,.26,.76);
+ creatures.forEach(({figure,fish,bird},i)=>{
+  const swim=travel*.53+i*.33;
+  const fishX=50+Math.sin(swim)*(25+i*2);
+  const birdX=((travel*6+82-i*8)%126)-13;
+  const fishY=48+i*6+Math.sin(swim*1.7)*3;
+  const birdY=18+(i%3)*5+Math.sin(travel*.9+i)*1.8;
+  figure.style.left=T.MathUtils.lerp(fishX,birdX,morph)+'%';
+  figure.style.top=T.MathUtils.lerp(fishY,birdY,morph)+'%';
+  figure.style.opacity=String(.78+i*.045);
+  figure.style.transform='translate(-50%,-50%) scale('+(1-i*.075)+')';
+  fish.style.opacity=String(1-morph);
+  fish.style.transformOrigin='center';
+  fish.style.transform='scaleX('+(Math.cos(swim)>=0?1:-1)+')';
+  bird.style.opacity=String(morph);
+  bird.style.transformOrigin='center';
+  bird.style.transform='scaleY('+(1+.27*Math.sin(travel*12+i))+')';
+ });
+}
 function renderWorld(time){
  relativeCamera.copy(camera.position).sub(orbitTarget);
  const down=-relativeCamera.y/relativeCamera.length();
@@ -899,6 +932,7 @@ function renderWorld(time){
  canEnter=blend>.65;
  forestToggle.hidden=!canEnter;
  updateWind(time,blend);
+ updateDreamFlock(time,blend);
  desertSky.style.opacity=blend;
  waterRays.style.opacity=1-blend;
  desertSun.intensity=3.25*blend;
@@ -928,6 +962,7 @@ renderer.setAnimationLoop(ms=>{
  motes.rotation.y=time*.04;
  motes.position.y=.17*Math.sin(time*.42);
  updateForestTransition(ms);
+ flock.hidden=forestActive;
  if(forestActive){
   plantForest(ms);
   renderer.render(forest,forestCamera);
