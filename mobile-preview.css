@@ -1,0 +1,82 @@
+.mobile-preview-toggle {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  z-index: 2147483647;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.mobile-preview-toggle::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 2px #15151c, 0 0 8px #15151c;
+}
+
+.mobile-preview-toggle[aria-pressed="true"]::before {
+  background: #15151c;
+}
+
+.mobile-preview-toggle:focus-visible {
+  outline: 2px solid #fff;
+  box-shadow: 0 0 0 2px #15151c;
+}
+
+.mobile-preview-dialog {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: #101017;
+}
+
+.mobile-preview-dialog[open] {
+  display: grid;
+  place-items: center;
+}
+
+.mobile-preview-frame {
+  display: block;
+  width: min(430px, calc(100vw - 24px), calc((100dvh - 32px) * 9 / 19.5));
+  aspect-ratio: 9 / 19.5;
+  border: 0;
+  border-radius: 12px;
+  background: #101017;
+  box-shadow: 0 0 0 1px #ffffff30;
+}
+
+@media (pointer: fine) {
+  body:has(> .mobile-preview-toggle) .route-map {
+    right: calc(max(10px, env(safe-area-inset-right)) + 42px);
+  }
+}
+
+@media (min-width: 641px) and (pointer: fine) {
+  body:has(> .mobile-preview-toggle) #radio-ui {
+    right: calc(max(10px, env(safe-area-inset-right)) + 9rem + 42px);
+  }
+}
+
+@media (pointer: coarse), (pointer: none) {
+  .mobile-preview-toggle[aria-pressed="false"] {
+    display: none;
+  }
+}

@@ -1,9 +1,12 @@
 <!doctype html>
 <html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>失物宇宙｜竹影深處</title>
+<link rel="stylesheet" href="mobile-preview.css">
+<script defer src="mobile-preview.js"></script>
+
 <style>
 *{box-sizing:border-box}body{margin:0;background:#0b1220;color:#e7eadd;font-family:Georgia,"Noto Serif TC",serif}canvas{display:block;position:fixed;inset:0;touch-action:none;cursor:grab}canvas:active{cursor:grabbing}header,footer{position:fixed;z-index:2;pointer-events:none;text-shadow:0 2px 12px #071021}header{padding:24px 5vw}h1{margin:.2em 0;font-weight:500;font-size:clamp(28px,5vw,52px)}small{letter-spacing:.21em}footer{bottom:0;width:100%;padding:15px 55px calc(15px + env(safe-area-inset-bottom));text-align:center;font-size:14px}nav a{position:fixed;top:50%;transform:translateY(-50%);z-index:3;width:46px;height:48px;border:1px solid #8a9d8b;border-radius:8px;background:#24364ee8;color:#f5ddb2;display:grid;place-items:center}nav a:first-child{left:9px}nav a:last-child{right:9px}nav a:focus-visible,nav a:hover{outline:2px solid #d6bc86;outline-offset:2px}nav a::after{content:"";border-block:8px solid transparent;border-left:12px solid currentColor}nav a:first-child::after{transform:rotate(180deg)}
-@media(pointer:coarse){header{padding:calc(13px + env(safe-area-inset-top)) 15px}nav a{top:auto;bottom:calc(53px + env(safe-area-inset-bottom));transform:none}footer{font-size:12px}}
+@media (pointer:coarse), (max-width:600px){header{padding:calc(13px + env(safe-area-inset-top)) 15px}nav a{top:auto;bottom:calc(53px + env(safe-area-inset-bottom));transform:none}footer{font-size:12px}}
 </style>
 <style>
 #snake-story{position:fixed;z-index:4;left:50%;bottom:calc(75px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(440px,85vw);background:#132824f2;color:#e7eee1;border:1px solid #688e7e;padding:14px 19px;border-radius:8px;line-height:1.65;white-space:pre-line}
