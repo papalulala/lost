@@ -28,6 +28,8 @@ button:focus-visible{outline:2px solid #f4bd64;outline-offset:2px}
 #launch{padding:0 1em}
 [hidden]{display:none!important}
 #peg-story{width:min(27rem,calc(100% - 2rem));max-height:78dvh;border:1px solid #bc925f;border-radius:10px;padding:1.4rem;background:#f4e6ca;color:#38291f}
+#story-pin-prompt{position:fixed;z-index:8;transform:translate(-50%,-50%);min-height:44px;padding:0 .8rem;white-space:nowrap;border:1px solid #ffe8ab;border-radius:999px;background:#503522;color:#fff3d6;box-shadow:0 2px 12px #291607a0;font:inherit;font-size:.9rem;font-weight:600;cursor:pointer}
+#story-pin-prompt:focus-visible{outline:2px solid #fff3d6;outline-offset:3px}
 #peg-story::backdrop{background:#201713ac}
 #peg-story h2{margin:0 0 .75rem}
 #peg-story p{white-space:pre-line;line-height:1.75}
@@ -77,6 +79,7 @@ nav[aria-label="場景切換"] a:first-child::after{order:-1}
 <button id="launch" hidden>重置彈珠</button>
 <div id="ending-actions" hidden><button type="button" id="replay-table">重玩彈珠台</button><button type="button" id="replay-maze">重玩迷宮</button></div>
 </footer>
+<button type="button" id="story-pin-prompt" hidden>點擊看故事</button>
 <dialog id="peg-story" aria-labelledby="peg-story-title"><h2 id="peg-story-title"></h2><p id="peg-story-text"></p><form method="dialog"><button>回到彈珠台</button></form></dialog>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.179.1/build/three.module.js"}}</script>
 <script type="module">
@@ -1105,6 +1108,9 @@ const plungerUp=new T.Vector3(0,1,0);
 const storyPins=[];
 const storyQueue=[];
 const pegStory=document.querySelector('#peg-story');
+const storyPrompt=document.querySelector('#story-pin-prompt');
+const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
+const storyScreenPosition=new T.Vector3();
 const lostCount=document.querySelector('#lost-count');
 const tableScore=document.querySelector('#table-score');
 let score=0;
@@ -1124,6 +1130,39 @@ const pinStories=[
 ];
 const paperShadow=new T.MeshStandardMaterial({color:0x9d7750,roughness:.94});
 const ticketMaterial=new T.MeshStandardMaterial({color:0xe0bd83,roughness:.92});
+const glowCanvas=document.createElement('canvas');
+glowCanvas.width=glowCanvas.height=256;
+const glowContext=glowCanvas.getContext('2d');
+const glowGradient=glowContext.createRadialGradient(128,128,0,128,128,128);
+glowGradient.addColorStop(0,'#fff5c8');
+glowGradient.addColorStop(.34,'#ffd778c0');
+glowGradient.addColorStop(1,'#ffb64200');
+glowContext.fillStyle=glowGradient;
+glowContext.fillRect(0,0,256,256);
+glowContext.save();
+glowContext.translate(128,128);
+const rayGradient=glowContext.createRadialGradient(0,0,18,0,0,125);
+rayGradient.addColorStop(0,'#fff9df');
+rayGradient.addColorStop(.65,'#ffe59ca0');
+rayGradient.addColorStop(1,'#ffe59c00');
+glowContext.fillStyle=rayGradient;
+for(let ray=0;ray<10;ray++){
+ const length=ray%2===0?125:94;
+ glowContext.beginPath();
+ glowContext.moveTo(0,-7);
+ glowContext.lineTo(length,0);
+ glowContext.lineTo(0,7);
+ glowContext.fill();
+ glowContext.rotate(Math.PI/5);
+}
+glowContext.restore();
+const storyGlowTexture=new T.CanvasTexture(glowCanvas);
+storyGlowTexture.colorSpace=T.SRGBColorSpace;
+const storyGlow=new T.Sprite(new T.SpriteMaterial({
+ map:storyGlowTexture,transparent:true,depthWrite:false,toneMapped:false
+}));
+storyGlow.visible=false;
+markers.add(storyGlow);
 function makeStoryPin(peg,index){
  const object=new T.Group();
  if(index===0){
@@ -1214,6 +1253,8 @@ function makeStoryPin(peg,index){
 }
 function resetStoryPins(keepDiscoveries){
  storyQueue.length=0;
+ storyPrompt.hidden=true;
+ storyGlow.visible=false;
  displayedStory=null;
  if(pegStory.open)pegStory.close();
  for(const item of storyPins){
@@ -1241,20 +1282,42 @@ function updateStoryPins(dt){
  const pop=Math.sin(t*Math.PI/2);
  item.object.position.set(item.x,item.y+.42*pop,.13+.34*pop);
  item.object.rotation.z=.65*(1-t);
- item.object.scale.setScalar(.32+pop*1.82);
+ item.object.scale.setScalar(.32+pop*2.9);
+ storyGlow.visible=true;
+ storyGlow.position.copy(item.object.position);
+ storyGlow.position.z-=.14;
+ const pulse=reducedMotion.matches?.82:.82+.16*Math.sin(item.age*5);
+ storyGlow.scale.setScalar((.35+1.65*pop)*pulse);
+ storyGlow.material.opacity=pop*pulse;
+ storyGlow.material.rotation=reducedMotion.matches?0:item.age*.35;
+ if(t<1)return;
+ const {x,y,bounds}=projectStoryPin(item);
+ const promptOffset=bounds.width>=600?104:0;
+ const promptX=x+promptOffset>bounds.right-65?x-promptOffset:x+promptOffset;
+ const promptY=promptOffset?y:(y+72<bounds.bottom?y+59:y-59);
+ storyPrompt.style.left=T.MathUtils.clamp(promptX,bounds.left+65,bounds.right-65)+'px';
+ storyPrompt.style.top=T.MathUtils.clamp(promptY,bounds.top+24,bounds.bottom-24)+'px';
+ storyPrompt.hidden=false;
 }
 function storyPaused(){
  return storyQueue.length>0||displayedStory!==null;
+}
+function projectStoryPin(item){
+ const bounds=renderer.domElement.getBoundingClientRect();
+ camera.updateMatrixWorld();
+ const center=item.object.getWorldPosition(storyScreenPosition).project(camera);
+ return {x:bounds.left+(center.x+1)*bounds.width/2,y:bounds.top+(1-center.y)*bounds.height/2,bounds};
 }
 function readPegStory(event){
  if(displayedStory||!storyQueue.length)return;
  const item=storyQueue[0];
  if(item.age<.54)return;
- const bounds=renderer.domElement.getBoundingClientRect();
- const center=item.object.getWorldPosition(new T.Vector3()).project(camera);
- const x=bounds.left+(center.x+1)*bounds.width/2;
- const y=bounds.top+(1-center.y)*bounds.height/2;
- if(Math.hypot(x-event.clientX,y-event.clientY)>56)return;
+ if(event.currentTarget!==storyPrompt){
+  const {x,y}=projectStoryPin(item);
+  if(Math.hypot(x-event.clientX,y-event.clientY)>66)return;
+ }
+ storyPrompt.hidden=true;
+ storyGlow.visible=false;
  displayedStory=storyQueue.shift();
  countKeepsake(item.story.title);
  pegTitle.textContent=item.story.title;
@@ -1878,6 +1941,7 @@ function updateBall(dt){
 }
 const playCanvas=renderer.domElement;
 playCanvas.addEventListener('click',readPegStory);
+storyPrompt.addEventListener('click',readPegStory);
 const mapRay=new T.Raycaster();
 const mapPointer=new T.Vector2();
 playCanvas.addEventListener('click',event=>{
