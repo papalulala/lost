@@ -19,10 +19,14 @@
 .journal-heading h2{font-size:clamp(22px,5vw,30px);margin:0}
 #journal-description{margin:10px 0}
 #notes{min-height:0;overflow:auto;overscroll-behavior:contain}
+#journal [hidden]{display:none}
+#admin-login{margin-bottom:10px}
+#admin-status:empty{display:none}
+#notes article button{display:block;margin-top:8px}
 #notes:focus-visible{outline:2px solid #8e735c;outline-offset:-2px}
 </style>
 <main><section class="panel"><small>失物宇宙</small><h1>失物留言</h1><p>你最記得哪一件失物？留下一個名字，再寫一段它的小故事。留言中的失物有機會被製作。</p>
-<form id="note-form"><label for="item">失物名稱</label><input id="item" required maxlength="30" autocomplete="off" placeholder="例如：草叢裡的珠寶皮箱"><label for="memory">失物的小故事</label><textarea id="memory" required maxlength="500" placeholder="你在哪裡遇見它？後來又去了哪裡？"></textarea><div class="buttons"><button type="submit">送出留言</button><button type="button" id="journal-open">翻開留言簿</button></div></form><p id="status" role="status"></p></section>
+<form id="note-form"><label for="item">失物名稱</label><input id="item" required maxlength="30" autocomplete="off" placeholder="例如：草叢裡的珠寶皮箱"><label for="memory">失物的小故事</label><textarea id="memory" required maxlength="500" placeholder="你在哪裡遇見它？後來又去了哪裡？"></textarea><div class="buttons"><button type="submit">送出留言</button><button type="button" id="journal-open">翻開留言簿</button><button type="button" id="journal-admin">管理留言簿</button></div></form><p id="status" role="status"></p></section>
 <div id="stage" aria-label="可以輕輕轉動的玻璃瓶"><div id="count">瓶中有 0 則回憶 · 拖曳或雙指旋轉可輕轉瓶身</div></div></main>
 <style id="mobile-scene-navigation">
 @media (pointer:coarse), (max-width:600px){
@@ -43,8 +47,126 @@ nav[aria-label="場景切換"] a:first-child::after{order:-1}
 .route-map li a:hover,.route-map li span{background:#f2dfb5}
 .route-map :focus-visible{outline:2px solid #8d582e;outline-offset:-2px}
 </style><nav class="scene-nav" aria-label="場景切換"><a href="bamboo-night.html" aria-label="上一個場景，竹影深處"><span>竹影深處</span></a><a href="abandoned-playground.html" aria-label="下一個場景，廢棄遊樂場"><span>廢棄遊樂場</span></a></nav><details class="route-map"><summary>月台路線圖</summary><ul><li><a href="index.html">回失物轉運站</a></li><li><a href="train-window.html">火車上的窗景</a></li><li><a href="ruined-watch-shop.html">停擺的修錶店</a></li><li><a href="maze-marble.html">影子的兩端</a></li><li><a href="blackout-stairwell.html">停在七樓的電梯</a></li><li><a href="shimmering-water.html">波光粼粼的水面</a></li><li><a href="underwater-world.html">夢境</a></li><li><a href="stationery-tidepool.html">放學後的舊文具店</a></li><li><a href="bamboo-night.html">竹影深處</a></li><li><span aria-current="page">失物留言（目前所在）</span></li><li><a href="abandoned-playground.html">廢棄遊樂場</a></li></ul></details>
-<dialog id="journal" aria-labelledby="journal-title"><header class="journal-heading"><h2 id="journal-title">失物留言簿</h2><form method="dialog"><button>闔上留言簿</button></form></header><p id="journal-description">這些留言保存在目前的瀏覽器。</p><div id="notes" tabindex="0" role="region" aria-label="留言清單"></div></dialog>
+<dialog id="journal" aria-labelledby="journal-title"><header class="journal-heading"><h2 id="journal-title">失物留言簿</h2><form method="dialog"><button>闔上留言簿</button></form></header><p id="journal-description">這些留言保存在目前的瀏覽器。</p><form id="admin-login" hidden><label for="admin-password">管理密碼</label><input id="admin-password" type="password" autocomplete="current-password" maxlength="256" required><button type="submit">登入管理</button></form><p id="admin-status" role="status"></p><div id="notes" tabindex="0" role="region" aria-label="留言清單"></div></dialog>
 <script type="module">
+const moderationEndpoint = 'https://lost-universe-moderation.papalulala.workers.dev';
+
+function setupModeration({ journal, shared, render, remove }) {
+  const form = document.getElementById('admin-login');
+  const password = document.getElementById('admin-password');
+  const status = document.getElementById('admin-status');
+  const notes = document.getElementById('notes');
+  const title = document.getElementById('journal-title');
+  let managing = false;
+  let token = '';
+  let busy = false;
+  let view = 0;
+
+  function update() {
+    form.hidden = !managing || Boolean(token);
+    notes.hidden = !form.hidden;
+    title.textContent = managing ? '管理留言簿' : '失物留言簿';
+    render();
+  }
+
+  document.getElementById('journal-admin').addEventListener('click', () => {
+    managing = true;
+    update();
+    journal.showModal();
+    password.focus();
+  });
+
+  journal.addEventListener('close', () => {
+    view++;
+    managing = false;
+    token = '';
+    status.textContent = '';
+    form.reset();
+    update();
+  });
+
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (busy) return;
+    const current = view;
+    const value = password.value;
+    form.reset();
+    const submit = form.querySelector('button');
+    busy = submit.disabled = true;
+    try {
+      let nextToken;
+      if (shared) {
+        const result = await fetch(moderationEndpoint + '/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: value }),
+        });
+        if (result.status === 401 || result.status === 429) {
+          if (current === view) status.textContent = result.status === 401 ? '密碼不正確。' : '嘗試次數過多，請稍後再試。';
+          return;
+        }
+        if (!result.ok) throw Error(result.status);
+        ({ token: nextToken } = await result.json());
+      } else {
+        if (value !== 'zag') {
+          status.textContent = '密碼不正確。';
+          return;
+        }
+        nextToken = 'local-preview';
+      }
+      if (current !== view) return;
+      token = nextToken;
+      status.textContent = '';
+      update();
+      notes.focus();
+    } catch {
+      if (current === view) status.textContent = '目前無法登入管理，請稍後再試。';
+    } finally {
+      busy = submit.disabled = false;
+    }
+  });
+
+  return function appendDelete(row, entry) {
+    if (!managing || !token || (shared && !entry.id)) return;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = '刪除';
+    button.setAttribute('aria-label', '刪除「' + entry.item + '」留言');
+    button.addEventListener('click', async () => {
+      if (busy || !token || !confirm('確定刪除「' + entry.item + '」這則留言？')) return;
+      const current = view;
+      busy = button.disabled = true;
+      try {
+        if (shared) {
+          const result = await fetch(moderationEndpoint + '/messages/' + encodeURIComponent(entry.id), {
+            method: 'DELETE',
+            headers: { Authorization: 'Bearer ' + token },
+          });
+          if (result.status === 401) {
+            if (current === view) {
+              token = '';
+              update();
+              status.textContent = '管理登入已過期，請重新登入。';
+              password.focus();
+            }
+            return;
+          }
+          if (!result.ok) throw Error(result.status);
+        }
+        remove(entry);
+        if (current === view) {
+          status.textContent = '已刪除「' + entry.item + '」。';
+          notes.focus();
+        }
+      } catch {
+        if (current === view) status.textContent = '刪除失敗，請稍後再試。';
+      } finally {
+        busy = button.disabled = false;
+      }
+    });
+    row.append(button);
+  };
+}
 const get=id=>document.getElementById(id);
 const endpoint=document.querySelector('meta[name=messages-endpoint]').content.trim();
 const shared=Boolean(endpoint)&&location.origin==='https://papalulala.github.io';
@@ -74,7 +196,9 @@ function renderJournal(){
   const row=document.createElement('article'),title=document.createElement('h3'),story=document.createElement('p'),date=document.createElement('time');
   title.textContent=e.item;story.textContent=e.story;
   const when=new Date(e.date);date.textContent=Number.isFinite(+when)?when.toLocaleString('zh-TW'):'';
-  row.append(title,story,date);list.append(row);
+  row.append(title,story,date);
+  appendDelete(row,e);
+  list.append(row);
  }
 }
 function openJournal(){
@@ -101,6 +225,14 @@ function applyEntries(next,animate=true){
  if(journal.open)renderJournal();
  syncVisuals(entries,animate);
 }
+const appendDelete=setupModeration({
+ journal,shared,render:renderJournal,
+ remove(entry){
+  const remaining=entries.filter(e=>shared?e.id!==entry.id:e!==entry);
+  if(!shared)localStorage.setItem(storeKey,JSON.stringify(remaining));
+  applyEntries(remaining);
+ }
+});
 async function refreshMessages(){
  if(refreshing)return;
  refreshing=true;
