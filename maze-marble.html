@@ -21,7 +21,13 @@ h1{font-family:Georgia,"Noto Serif TC",serif;font-weight:500;font-size:clamp(24p
 footer{bottom:max(14px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);text-align:center;width:min(92vw,570px)}
 button{font:inherit;min-width:48px;min-height:44px;border:1px solid #c19760;border-radius:6px;background:#342720;color:#fff0ce;cursor:pointer}
 button:focus-visible{outline:2px solid #f4bd64;outline-offset:2px}
-#letter-form{display:flex;justify-content:center;gap:7px}
+#letter-form{display:flex;align-items:center;justify-content:center;gap:12px}
+#letter-fields{display:flex;justify-content:center;gap:7px}
+#letter-fields input[data-active]{border-color:#ffdb92;box-shadow:0 0 0 1px #ffdb92}
+#maze-keypad{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;width:min(100%,118px)}
+#maze-keypad button{position:relative;isolation:isolate;min-width:0;min-height:22px;padding:0;border:0;background:transparent;font-size:.75rem;touch-action:manipulation}
+#maze-keypad button::before{content:"";position:absolute;z-index:-1;inset:50% auto auto 50%;transform:translate(-50%,-50%);box-sizing:border-box;width:min(100%,22px);height:22px;border:1px solid #c19760;border-radius:4px;background:#342720}
+#maze-keypad button:hover::before,#maze-keypad button:active::before{background:#624631}
 #letter-form input{width:clamp(36px,10vw,50px);height:45px;border:1px solid #c19760;border-radius:6px;background:#342720;color:#fff0ce;text-align:center;font:700 22px Georgia,serif;text-transform:uppercase}
 #letter-form input:focus-visible{outline:2px solid #f4bd64;outline-offset:2px}
 #status{min-height:1.4em;margin:.35rem 0 .6rem}
@@ -37,7 +43,10 @@ button:focus-visible{outline:2px solid #f4bd64;outline-offset:2px}
 #ending-actions button{padding:.35em .65em}
 @media(pointer:coarse),(max-width:600px){
  footer{width:min(570px,calc(100% - 110px))}
- #letter-form{gap:4px}
+ #letter-form{flex-direction:column;gap:8px}
+ #letter-fields{gap:4px}
+ #maze-keypad{width:min(100%,220px);gap:0}
+ #maze-keypad button{min-height:44px}
  #letter-form input{width:min(10vw,50px);min-width:0}
 }
 </style>
@@ -72,9 +81,23 @@ nav[aria-label="場景切換"] a:first-child::after{order:-1}
 </style><nav class="scene-nav" aria-label="場景切換"><a href="ruined-watch-shop.html" aria-label="上一個場景，停擺的修錶店" title="停擺的修錶店"><span>停擺的修錶店</span></a><a href="blackout-stairwell.html" aria-label="下一個場景，停在七樓的電梯" title="停在七樓的電梯"><span>停在七樓的電梯</span></a></nav><details class="route-map"><summary>月台路線圖</summary><ul><li><a href="index.html">回失物轉運站</a></li><li><a href="train-window.html">火車上的窗景</a></li><li><a href="ruined-watch-shop.html">停擺的修錶店</a></li><li><span aria-current="page">影子的兩端（目前所在）</span></li><li><a href="blackout-stairwell.html">停在七樓的電梯</a></li><li><a href="shimmering-water.html">波光粼粼的水面</a></li><li><a href="underwater-world.html">夢境</a></li><li><a href="stationery-tidepool.html">放學後的舊文具店</a></li><li><a href="bamboo-night.html">竹影深處</a></li><li><a href="message-bottle.html">失物留言</a></li><li><a href="abandoned-playground.html">廢棄遊樂場</a></li></ul></details>
 <header><small>失物宇宙</small><h1>影子的兩端</h1><span id="lost-count" aria-live="polite">失物 0 / 5</span> <span id="table-score" hidden aria-live="polite"></span></header>
 <footer>
-<p id="status" aria-live="polite">拖曳旋轉迷宮，找出牆上和地面的四個數字。</p>
+<p id="status" aria-live="polite">上下拖曳引導火球，左右轉動迷宮，找出四個數字。</p>
 <form id="letter-form" aria-label="輸入找到的四個數字" autocomplete="off">
+<div id="letter-fields">
 <input aria-label="第 1 格" inputmode="numeric" maxlength="1" spellcheck="false"><input aria-label="第 2 格" inputmode="numeric" maxlength="1" spellcheck="false"><input aria-label="第 3 格" inputmode="numeric" maxlength="1" spellcheck="false"><input aria-label="第 4 格" inputmode="numeric" maxlength="1" spellcheck="false">
+</div>
+<div id="maze-keypad" role="group" aria-label="數字鍵盤">
+<button type="button">0</button>
+<button type="button">1</button>
+<button type="button">2</button>
+<button type="button">3</button>
+<button type="button">4</button>
+<button type="button">5</button>
+<button type="button">6</button>
+<button type="button">7</button>
+<button type="button">8</button>
+<button type="button">9</button>
+</div>
 </form>
 <button id="launch" hidden>重置彈珠</button>
 <div id="ending-actions" hidden><button type="button" id="replay-table">重玩彈珠台</button><button type="button" id="replay-maze">重玩迷宮</button></div>
@@ -792,7 +815,7 @@ const fireSkin=new T.ShaderMaterial({
  varying vec3 firePoint,fireNormal,fireView;
  void main(){
   float facing=abs(dot(normalize(fireNormal),normalize(fireView)));
-  vec3 color=mix(vec3(1.,.45,.065),vec3(1.,.93,.51),smoothstep(0.,.85,facing));
+  vec3 color=mix(vec3(.20,.055,1.),vec3(.56,.67,1.),smoothstep(0.,.85,facing));
   gl_FragColor=vec4(color,1.);
   #include <colorspace_fragment>
  }`
@@ -828,7 +851,7 @@ const flameEnvelope=new T.ShaderMaterial({
   float rim=1.-abs(dot(normalize(flameNormal),normalize(flameView)));
   float flame=.5+.5*sin(d.x*23.+d.y*18.+2.*sin(d.z*13.+fireTime*6.)-fireTime*5.);
   float tips=smoothstep(.34,.89,flame);
-  vec3 heat=mix(vec3(1.,.15,.018),vec3(1.,.75,.25),tips);
+  vec3 heat=mix(vec3(.15,.035,.85),vec3(.46,.31,1.),tips);
   gl_FragColor=vec4(heat,(.17+.68*tips)*smoothstep(.15,.85,rim));
   #include <colorspace_fragment>
  }`
@@ -838,9 +861,9 @@ const haloCanvas=document.createElement('canvas');
 haloCanvas.width=haloCanvas.height=64;
 const haloInk=haloCanvas.getContext('2d');
 const haloGradient=haloInk.createRadialGradient(32,32,1,32,32,32);
-haloGradient.addColorStop(0,'rgba(255,194,76,.75)');
-haloGradient.addColorStop(.32,'rgba(255,136,34,.44)');
-haloGradient.addColorStop(1,'rgba(255,89,16,0)');
+haloGradient.addColorStop(0,'rgba(170,185,255,.75)');
+haloGradient.addColorStop(.32,'rgba(126,92,255,.44)');
+haloGradient.addColorStop(1,'rgba(100,56,255,0)');
 haloInk.fillStyle=haloGradient;
 haloInk.fillRect(0,0,64,64);
 const fireHalo=new T.Sprite(new T.SpriteMaterial({
@@ -848,12 +871,13 @@ const fireHalo=new T.Sprite(new T.SpriteMaterial({
 }));
 fireHalo.scale.setScalar(.77);
 fireball.add(fireHalo);
-const fireLight=new T.PointLight(0xff8e30,1.4,2.1,1.6);
+const fireLight=new T.PointLight(0x8a80ff,1.4,2.1,1.6);
 fireLight.position.y=.09;
 fireball.add(fireLight);
 scene.add(fireball);
 const fireVelocity=new T.Vector2();
 const rollAxis=new T.Vector3();
+const screenDownOnFloor=new T.Vector3();
 const floorRay=new T.Raycaster();
 const downward=new T.Vector3(0,-1,0);
 const rayOrigin=new T.Vector3();
@@ -874,14 +898,29 @@ function settleFireball(){
  const hit=floorRay.intersectObjects(floorMeshes)[0];
  fireball.position.y=(hit?.point.y??0)+fireRadius;
 }
+function mazeSlopeAcceleration(tilt){
+ const deadZone=Math.PI/90;
+ return T.MathUtils.clamp((Math.abs(tilt)-deadZone)*11,0,5.8);
+}
 function updateFireball(dt,time){
  fireTime.value=time;
  fireLight.intensity=1.2+.36*Math.sin(time*7.4);
  fireHalo.material.opacity=.70+.15*Math.sin(time*5.8);
  const px=fireball.position.x,pz=fireball.position.z;
- const gravity=5.8/Math.max(1,camera.position.length());
- fireVelocity.x+=camera.position.x*gravity*dt;
- fireVelocity.y+=camera.position.z*gravity*dt;
+ const horizontal=Math.hypot(camera.position.x,camera.position.z);
+ const elevation=Math.atan2(camera.position.y,horizontal);
+ const gravity=mazeSlopeAcceleration(neutralMazeElevation-elevation);
+ // Project the camera's downward direction onto the maze floor.
+ screenDownOnFloor.set(0,-1,0).applyQuaternion(camera.quaternion);
+ const projectedLength=Math.hypot(screenDownOnFloor.x,screenDownOnFloor.z);
+ if(gravity>0&&projectedLength>0){
+  const downhillX=screenDownOnFloor.x/projectedLength;
+  const downhillZ=screenDownOnFloor.z/projectedLength;
+  const uphillSpeed=Math.min(0,fireVelocity.x*downhillX+fireVelocity.y*downhillZ);
+  const speedChange=gravity*dt-uphillSpeed;
+  fireVelocity.x+=downhillX*speedChange;
+  fireVelocity.y+=downhillZ*speedChange;
+ }
  fireVelocity.multiplyScalar(Math.exp(-2.2*dt)).clampLength(0,2.1);
  const steps=Math.max(1,Math.ceil(dt*120));
  for(let i=0;i<steps;i++){
@@ -1373,6 +1412,7 @@ binScores.forEach((value,i)=>{
  markers.add(marker);
 });
 const mazeCamera=new T.Vector3(0,12.2,7.8),tableCamera=new T.Vector3(0,7.3,9.0);
+const neutralMazeElevation=Math.atan2(mazeCamera.y,Math.hypot(mazeCamera.x,mazeCamera.z));
 const look=new T.Vector3(0,0,0);
 const finaleMap=new T.Group();
 const mapCanvas=document.createElement('canvas');
@@ -1607,7 +1647,22 @@ let tableTransitionDistance=tableCamera.length();
 const activeMarbles=[];
 let tableTilt=0,requestedTilt=0,tableDrag=null,plungerDrag=null,plungerPull=0;
 const letters=[...letterForm.querySelectorAll('input')];
-const rotateMaze=createDragControls(camera,renderer.domElement,look,8,26);
+const mazeKeypad=document.querySelector('#maze-keypad');
+let activeLetter=0;
+function selectLetter(index){
+ letters[activeLetter].removeAttribute('data-active');
+ activeLetter=index;
+ letters[activeLetter].setAttribute('data-active','');
+}
+function enterDigit(index,value,moveFocus){
+ letters[index].value=value;
+ if(value&&index<letters.length-1){
+  selectLetter(index+1);
+  if(moveFocus){letters[activeLetter].focus();letters[activeLetter].select();}
+ }
+ checkLetters();
+}
+const rotateMaze=createDragControls(camera,renderer.domElement,look,8,26,true);
 const rotateFinalMap=createDragControls(camera,renderer.domElement,look,3.8,11);
 rotateFinalMap.enabled=false;
 const startingView=new T.Quaternion();
@@ -1625,7 +1680,8 @@ function reset(){
  plungerPull=0;
  board.quaternion.copy(boardQuaternion);
  letterForm.reset();
- status.textContent='拖曳旋轉迷宮，找出牆上和地面的四個數字。';
+ selectLetter(0);
+ status.textContent='上下拖曳引導火球，左右轉動迷宮，找出四個數字。';
  letterForm.hidden=false;launch.hidden=true;
  tableScore.hidden=true;
  rotateMaze.enabled=true;
@@ -1673,11 +1729,14 @@ function checkLetters(){
  status.textContent='';
 }
 letterForm.addEventListener('submit',event=>{event.preventDefault();checkLetters();});
+mazeKeypad.addEventListener('click',event=>{
+ if(phase!=='maze'||!event.target.matches('button'))return;
+ enterDigit(activeLetter,event.target.textContent,false);
+});
 letters.forEach((field,index)=>{
+ field.addEventListener('focus',()=>selectLetter(index));
  field.addEventListener('input',()=>{
-  field.value=field.value.normalize('NFKC').replace(/[^0-9]/g,'').slice(-1);
-  if(field.value&&index<letters.length-1){letters[index+1].focus();letters[index+1].select();}
-  checkLetters();
+  enterDigit(index,field.value.normalize('NFKC').replace(/[^0-9]/g,'').slice(-1),true);
  });
  field.addEventListener('paste',event=>{
   const value=event.clipboardData.getData('text').normalize('NFKC').replace(/[^0-9]/g,'');
